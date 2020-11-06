@@ -35,5 +35,22 @@ Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 
+% Defining 4x4 antenna array BS, separated by lambda/2
+Geometry.BSarray = phased.URA('Size',[4 4],...
+    'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
+
+% Position of elements of antenna array
+Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
+
+
+% Calculation on waveform
+    receivedW = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],...
+        [Geometry.DOAV1Start' Geometry.DOAV2Start'], Pars.fc);
+    
+
+% Add AWGN
+Pars.SNR = 20; % dB
+chOut = awgn(receivedW, Pars.SNR, 'measured');
+
 
 

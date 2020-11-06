@@ -22,13 +22,25 @@ Geometry.T2 = dist3D(Geometry.V2PosStart, Geometry.V2PosEnd);  % distance covere
 Geometry.DistV1Start = dist3D(Geometry.V1PosStart, Geometry.BSPos); % initial distance between BS and V1
 Geometry.DistV2Start = dist3D(Geometry.V2PosStart, Geometry.BSPos); % initial distance between BS and V1
 
+
 % DoA = [AoA ZoA] at beginning 
 % (Direction of Arrival) = (Angle of Arriv. Zenith of Arriv.)
 % Zenith = 90 - Elevation Angle
-Geometry.AoAV1Start = AoA();
+Geometry.AOAV1Start = AoA(Geometry.BSPos, Geometry.V1PosStart);
+Geometry.ZOAV1Start = ZoA(Geometry.BSPos, Geometry.V1PosStart);
+Geometry.DOAV1Start = [Geometry.AOAV1Start Geometry.ZOAV1Start]; % DOA of V1
+
+Geometry.AOAV2Start = AoA(Geometry.BSPos, Geometry.V2PosStart);
+Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
+Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 
+% Defining 4x4 antenna array BS
+Geometry.BSarray = phased.URA('Size',[4 4],...
+    'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
+% Position of elements of antenna array
+Geometry.BSAntennaPos = getElementPosition(Geometry
 
 
 
