@@ -43,14 +43,27 @@ Geometry.BSarray = phased.URA('Size',[4 4],...
 Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
 
 
-% Calculation on waveform
-receivedW = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],...
-        [Geometry.DOAV1Start' Geometry.DOAV2Start'], Pars.fc);
-    
 
-% Add AWGN
-Pars.SNR = 20; % dB
-chOut = awgn(receivedW, Pars.SNR, 'measured');
+% Create Layout Object
+l = qd_layout;
+l.set_scenario('QuaDRiGa_UD2D_LOS');
+
+% Define tx and rx
+txArr = qd_arrayant('omni');
+rxArr = qd_arrayant('omni');
+rxArr.no_elements = 16;
+rxArr.element_position = Geometry.BSAntennaPos;
+
+l.tx_array = txArr;
+l.rx_array = rxArr;
+l.no_rx = 1;
+l.no_tx = 4;
+tx_track1 = qd_track('linear', Geometry.T1, pi/2);
+tx_track1.name = 'trackV1';
+tx_track2 = qd_track('linear', Geometry.T2, pi);
+tx_track2.name = 'trackV2';
+tx_track1.initial_position = Geometry.V1PosStart';
+tx_track2.initial_position = Geometry.V1PosStart';
 
 
 

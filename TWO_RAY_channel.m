@@ -43,14 +43,68 @@ Geometry.BSarray = phased.URA('Size',[4 4],...
 Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
 
 
-% Calculation on waveform
-receivedW = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],...
-        [Geometry.DOAV1Start' Geometry.DOAV2Start'], Pars.fc);
-    
+% Define waveform
+Fsin = 600;
+Ts = 1e-5;
+Fsample = 1/Ts; % 10 khz
+TsVect = 0:Ts:5/Fsin; % up to 5 periods
+sinusoid_waveform = sin(2*pi*Fsin*TsVect);
 
-% Add AWGN
-Pars.SNR = 20; % dB
-chOut = awgn(receivedW, Pars.SNR, 'measured');
+txPos = Geometry.BSPos;
+htx = txPos(3);
+
+rxPos = Geometry.V1PosStart;
+hrx = rxPos(3);
+
+% invert z coordinate
+rxPosR = rxPos;
+rxPosR(3) = -rxPosR(3);
+
+
+% LOS distance
+l = dist3D(txPos, rxPos);
+
+% RELFECTED distance (rxPosR!)
+x = dist3D(txPos, rxPosR);
+
+% 2D distance d
+d = dist2D(txPos, rxPos);
+
+% DeltaD = relfected - los
+DeltaD = x - l;
+
+
+% power of sinusoid = A^2/2 (this case A=1), Gt=Gr=1 isotropic antenna
+PrTheory = (1/2) * (1) * (Pars.lambda/(4*pi*d))^2*...
+    sqrt(abs(1-exp(1i*(2*pi*DeltaD/Pars.lambda))));
+
+% Large d approx DeltaD = x - l = ~ 2*htx*hrx/d
+PrApprox = (1/2) * (1) * (Pars.lambda/(4*pi*d))^2*...
+    sqrt(abs(1-exp(1i*(2*pi*2*htx*hrx/(d*Pars.lambda)))));
+
+% very different since 2*pi*2*htx*hrx/d = 15.708, DeltaD = 3 and lambda = 0.2997
+[PrTheory, PrApprox]
+
+
+
+% Using Matlab Model TwoRayChannel
+pos1 = txPos';
+pos2 = rxPos';
+vel1 = [0;0;0]; % tx and rx not moving
+vel2 = [0;0;0];
+swav = sinusoid_waveform';
+
+channel = phased.TwoRayChannel('SampleRate', Fsample,...
+    'GroundReflectionCoefficient', -1, 'OperatingFrequency', Pars.fc,...
+    'CombinedRaysOutput', true);
+prop_signal = channel([swav,swav], pos1, pos2, vel1, vel2);
+
+RxPow = mean(abs(prop_signal).^2);
+[RxPow, PrTheory, PrApprox]
+
+
+
+
 
 
 
