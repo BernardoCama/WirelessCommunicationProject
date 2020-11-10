@@ -2,14 +2,14 @@ clear all, clc, close all
 
 ris = zeros(3,1000);
 
-for idx=1:1:1000
+for idx=1:1:170
 
 Pars.fc = 1e9;
 Pars.c = physconst('LightSpeed');
 Pars.lambda = Pars.c/Pars.fc;
 
 Geometry.BSPos = [0,0,25]; % macrocell with high 25m
-Geometry.V1PosStart = [idx,-100,1.5]; % start Veichile 1
+Geometry.V1PosStart = [idx,0,1.5]; % start Veichile 1 [70,-100,1.5]
 Geometry.V1PosEnd = [70,100,1.5]; % end Veichile 1
 Geometry.V2PosStart = [200,-50,1.5]; % start Veichile 2
 Geometry.V2PosEnd = [10,-50,1.5]; % end Veichile 2
@@ -78,14 +78,14 @@ DeltaD = x - l;
 
 
 % power of sinusoid = A^2/2 (this case A=1), Gt=Gr=1 isotropic antenna
-PrTheory = (1/2) * (1) * (Pars.lambda/(4*pi*d))^2*...
-    sqrt(abs(1-exp(1i*(2*pi*DeltaD/Pars.lambda))));
+PrTheory = (1/2) * (1) * (Pars.lambda/(4*pi*l))^2*...
+    (abs(1-exp(1i*(2*pi*DeltaD/(Pars.lambda)))))^2;
 
 % Large d approx DeltaD = x - l = ~ 2*htx*hrx/d
-PrApprox = (1/2) * (1) * (Pars.lambda/(4*pi*d))^2*...
-    sqrt(abs(1-exp(1i*(2*pi*2*htx*hrx/(d*Pars.lambda)))));
+PrApprox = (1/2) * (1) * (Pars.lambda/(4*pi*l))^2*...
+    (abs(1-exp(1i*(2*pi*2*htx*hrx/(d*Pars.lambda)))))^2;
 
-% very different since 2*pi*2*htx*hrx/d = 15.708, DeltaD = 3 and lambda = 0.2997
+% very different since 2*htx*hrx/d = 15.708, DeltaD = 3 and lambda = 0.2997
 [PrTheory, PrApprox];
 
 
