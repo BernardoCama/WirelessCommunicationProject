@@ -15,12 +15,11 @@ Geometry.I1Pos = [10,-210,1.5];
 Geometry.I2Pos = [-150,100,1.5];
 
 % CreateScenarioAndVisualize(Geometry, Pars);
-
 Geometry.T1 = dist3D(Geometry.V1PosStart, Geometry.V1PosEnd);  % distance covered by V1
 Geometry.T2 = dist3D(Geometry.V2PosStart, Geometry.V2PosEnd);  % distance covered by V2
 
 Geometry.DistV1Start = dist3D(Geometry.V1PosStart, Geometry.BSPos); % initial distance between BS and V1
-Geometry.DistV2Start = dist3D(Geometry.V2PosStart, Geometry.BSPos); % initial distance between BS and V1
+Geometry.DistV2Start = dist3D(Geometry.V2PosStart, Geometry.BSPos); % initial distance between BS and V2
 
 
 % DoA = [AoA ZoA] at beginning 
@@ -49,8 +48,8 @@ receivedW = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],...
     
 
 % Add AWGN
-Pars.SNR = 20; % dB
-chOut = awgn(receivedW, Pars.SNR, 'measured');
+% Pars.SNR = 20; % dB
+% chOut = awgn(receivedW, Pars.SNR, 'measured');
 
 
 
