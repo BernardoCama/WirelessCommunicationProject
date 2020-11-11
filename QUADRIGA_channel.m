@@ -41,6 +41,10 @@ Geometry.BSarray = phased.URA('Size',[4 4],...
 % Position of elements of antenna array
 Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
 
+Geometry.confarray = phased.ConformalArray('ElementPosition',Geometry.BSAntennaPos);
+viewArray(Geometry.confarray);
+
+
 
 % Define waveform
 Fsin = 600;

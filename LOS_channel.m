@@ -41,15 +41,34 @@ Geometry.BSarray = phased.URA('Size',[4 4],...
 % Position of elements of antenna array
 Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
 
+Geometry.confarray = phased.ConformalArray('ElementPosition',Geometry.BSAntennaPos);
+viewArray(Geometry.confarray);
+
+
+
+
+
+% Define waveform1
+Fsin1 = 600;
+Ts = 1e-5;
+Fsample = 1/Ts; % 10 khz
+TsVect = 0:Ts:5/Fsin1; % up to 5 periods
+waveform1 = sin(2*pi*Fsin1*TsVect);
+
+% Define waveform2
+Fsin2 = 1200;
+waveform2 = sin(2*pi*Fsin2*TsVect);
+
+
 
 % Calculation on waveform
-receivedW = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],...
-        [Geometry.DOAV1Start' Geometry.DOAV2Start'], Pars.fc);
+receivedW = collectPlaneWave(Geometry.BSarray, [waveform1' waveform2'],...
+        [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
     
 
 % Add AWGN
-% Pars.SNR = 20; % dB
-% chOut = awgn(receivedW, Pars.SNR, 'measured');
+Pars.SNR = 20; % dB
+chOut = awgn(receivedW, Pars.SNR, 'measured');
 
 
 
