@@ -198,18 +198,3 @@ dataOut_beam = dataOut_beam(:);
 
 
 
-
-% 
-% % PROVE
-% out = ofdmDemod1(waveform1);
-% figure;
-% 
-% x = real(out);
-% x = reshape(x,[9*140,1]);
-% y = imag(out);
-% y = reshape(y,[9*140,1]);
-% scatter(x,y);
-% 
-% dataOut_beam = qamdemod(out,M,'OutputType','bit');
-% dataOut_beam = dataOut_beam(:);
-% [numErrorsG_beam,berG] = biterr(in1,dataOut_beam)

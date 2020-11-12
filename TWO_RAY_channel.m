@@ -118,6 +118,7 @@ hold on;
 semilogy(ris(2,:));
 hold on;
 semilogy(ris(3,:));
+grid on;
 legend('RxPow', 'PrTheory', 'PrApprox');
 
 
