@@ -171,6 +171,11 @@ y = imag(out);
 y = reshape(y,[9*140,1]);
 scatter(x,y);
 
+dataOut_notbeam = qamdemod(out,M,'OutputType','bit');
+dataOut_notbeam = dataOut_notbeam(:);
+[numErrorsG_notbeam,berG_notbeam] = biterr(in1,dataOut_notbeam)
+
+
 % With beamformer
 out = ofdmDemod1(arrOut);
 figure;
@@ -181,7 +186,9 @@ y = imag(out);
 y = reshape(y,[9*140,1]);
 scatter(x,y);
 
-
+dataOut_beam = qamdemod(out,M,'OutputType','bit');
+dataOut_beam = dataOut_beam(:);
+[numErrorsG_beam,berG_beam] = biterr(in1,dataOut_beam)
 
 
 

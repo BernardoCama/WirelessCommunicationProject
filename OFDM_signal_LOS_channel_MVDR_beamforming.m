@@ -1,6 +1,6 @@
 clear all, clc, close all
 
-
+%% Geometry and Pars
 Pars.fc = 1e9;
 Pars.c = physconst('LightSpeed');
 Pars.lambda = Pars.c/Pars.fc;
@@ -45,7 +45,7 @@ Geometry.confarray = phased.ConformalArray('ElementPosition',Geometry.BSAntennaP
 viewArray(Geometry.confarray);
 
 
-
+%% Waveform, Modulators and Demodulators Generation
 % OFDM configuration:
 ofdmMod1 = comm.OFDMModulator('FFTLength', 12, ...
     'NumGuardBandCarriers', [1;1], ...
@@ -107,6 +107,9 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 
 
+
+
+%% Channnel generation
 % Calculation on waveform
 chOut = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],... % attention to dimension of waveforms
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
@@ -119,7 +122,7 @@ chOut = awgn(chOut, Pars.SNR, 'measured');
 
 
 
-% DOA Estimation with MUSIC
+%% DOA Estimation with MUSIC
 estimator = phased.MUSICEstimator2D(...
     'SensorArray',Geometry.BSarray,...
     'OperatingFrequency',Pars.fc,...
@@ -135,13 +138,15 @@ plotSpectrum(estimator);
 
 
 
-% Simple beamformer
-beamformer = phased.PhaseShiftBeamformer(...
+%% Minimum Variance Distortionless Response beamformer
+beamformer = phased.MVDRBeamformer(...
     'SensorArray',Geometry.BSarray,...
     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
     'Direction',Geometry.DOAV1Start','WeightsOutputPort',true);
 
 [arrOut,w] = beamformer(chOut);
+
+
 
 
 % Plot array pattern at azimuth = 0°
@@ -159,29 +164,52 @@ pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
 
 
 
-% Scattergraph to see impact of BF
+%% Scattergraph to see impact of BF
 
 % Without beamformer
 out = ofdmDemod1(chOut(:,1)); % first antenna
 figure;
 
 x = real(out);
-x = reshape(x,[11*14,1]);
+x = reshape(x,[9*140,1]);
 y = imag(out);
-y = reshape(y,[11*14,1]);
+y = reshape(y,[9*140,1]);
 scatter(x,y);
 
+dataOut_notbeam = qamdemod(out,M,'OutputType','bit');
+dataOut_notbeam = dataOut_notbeam(:);
+[numErrorsG_notbeam,berG_notbeam] = biterr(in1,dataOut_notbeam)
+
+
+
 % With beamformer
-out = ofdmDemod1(arrOut); % first antenna
+out = ofdmDemod1(arrOut);
 figure;
 
 x = real(out);
-x = reshape(x,[11*14,1]);
+x = reshape(x,[9*140,1]);
 y = imag(out);
-y = reshape(y,[11*14,1]);
+y = reshape(y,[9*140,1]);
 scatter(x,y);
 
+dataOut_beam = qamdemod(out,M,'OutputType','bit');
+dataOut_beam = dataOut_beam(:);
+[numErrorsG_beam,berG_beam] = biterr(in1,dataOut_beam)
 
 
 
 
+% 
+% % PROVE
+% out = ofdmDemod1(waveform1);
+% figure;
+% 
+% x = real(out);
+% x = reshape(x,[9*140,1]);
+% y = imag(out);
+% y = reshape(y,[9*140,1]);
+% scatter(x,y);
+% 
+% dataOut_beam = qamdemod(out,M,'OutputType','bit');
+% dataOut_beam = dataOut_beam(:);
+% [numErrorsG_beam,berG] = biterr(in1,dataOut_beam)
