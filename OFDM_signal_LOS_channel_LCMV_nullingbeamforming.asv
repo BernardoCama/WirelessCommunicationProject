@@ -111,14 +111,17 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 %% Channnel generation
 % Calculation on waveform
-chOut = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],... % attention to dimension of waveforms
-        [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
-    
+chOut = collectPlaneWave(Geometry.BSarray, [waveform1],... % attention to dimension of waveforms
+        [Geometry.DOAV1Start'], Pars.fc);
+chOutInt = collectPlaneWave(Geometry.BSarray, [waveform2],... % attention to dimension of waveforms
+        [Geometry.DOAV2Start'], Pars.fc);    
 
 % Add AWGN
 Pars.SNR = 20; % dB
-chOut = awgn(chOut, Pars.SNR, 'measured');
+chOutInt = awgn(chOutInt, Pars.SNR, 'measured'); % chOutInt used as interference (target-free data) and training sequence
 
+
+% Signal reccieved
 
 
 
@@ -132,11 +135,6 @@ estimator = phased.MUSICEstimator2D(...
     'AzimuthScanAngles',-90:.1:90,...
     'ElevationScanAngles',0:0.5:90);
 [~,doas] = estimator(chOut);
-doas(1,:) = -(doas(1,:)-180);
-temp1 = doas(:,1);
-doas(:,1) = doas(:,2);
-doas(:,2) = temp1;
-
 
 figure
 plotSpectrum(estimator);
@@ -147,16 +145,10 @@ plotSpectrum(estimator);
 beamformer = phased.MVDRBeamformer(...
     'SensorArray',Geometry.BSarray,...
     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-    'Direction',doas(:,1),'WeightsOutputPort',true);
+    'Direction',Geometry.DOAV1Start','WeightsOutputPort',true);
 
 [arrOut,w] = beamformer(chOut);
 
-
-% % Plot Output of Beamformer
-% figure;
-% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
-% title('Output of Beamformer');
-% xlabel('Time (s)');ylabel('Magnitude (V)');
 
 
 

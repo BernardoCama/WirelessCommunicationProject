@@ -111,15 +111,18 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 %% Channnel generation
 % Calculation on waveform
-chOut = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],... % attention to dimension of waveforms
-        [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
-    
+chOut = collectPlaneWave(Geometry.BSarray, [waveform1],... % attention to dimension of waveforms
+        [Geometry.DOAV1Start'], Pars.fc);
+chOutInt = collectPlaneWave(Geometry.BSarray, [waveform2],... % attention to dimension of waveforms
+        [Geometry.DOAV2Start'], Pars.fc);    
 
 % Add AWGN
 Pars.SNR = 20; % dB
-chOut = awgn(chOut, Pars.SNR, 'measured');
+chOutInt = awgn(chOutInt, Pars.SNR, 'measured'); % chOutInt used as interference (target-free data) and training sequence
 
 
+% Signal reccieved
+chOut = chOut + chOutInt;
 
 
 %% DOA Estimation with MUSIC
@@ -144,12 +147,15 @@ plotSpectrum(estimator);
 
 
 %% Minimum Variance Distortionless Response beamformer
-beamformer = phased.MVDRBeamformer(...
+steeringvector = phased.SteeringVector(...
     'SensorArray',Geometry.BSarray,...
-    'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-    'Direction',doas(:,1),'WeightsOutputPort',true);
+    'PropagationSpeed',Pars.c);
+beamformer = phased.LCMVBeamformer('DesiredResponse',1,...
+    'TrainingInputPort',true,'WeightsOutputPort',true);
+beamformer.Constraint = steeringvector(Pars.fc,doas(:,1));
+beamformer.DesiredResponse = 1;
+[arrOut,w] = beamformer(chOut,chOutInt);
 
-[arrOut,w] = beamformer(chOut);
 
 
 % % Plot Output of Beamformer
@@ -157,7 +163,6 @@ beamformer = phased.MVDRBeamformer(...
 % plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
 % title('Output of Beamformer');
 % xlabel('Time (s)');ylabel('Magnitude (V)');
-
 
 
 % Plot array pattern at azimuth = 0°

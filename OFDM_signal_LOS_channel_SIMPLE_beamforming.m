@@ -129,10 +129,10 @@ estimator = phased.MUSICEstimator2D(...
     'AzimuthScanAngles',-90:.1:90,...
     'ElevationScanAngles',0:0.5:90);
 [~,doas] = estimator(chOut);
-temp1 = doas(:,1);
-doas(:,2) = doas(:,1);
-doas(:,1) = temp1;
 doas(1,:) = -(doas(1,:)-180);
+temp1 = doas(:,1);
+doas(:,1) = doas(:,2);
+doas(:,2) = temp1;
 
 figure
 plotSpectrum(estimator);
@@ -143,12 +143,19 @@ plotSpectrum(estimator);
 beamformer = phased.PhaseShiftBeamformer(...
     'SensorArray',Geometry.BSarray,...
     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-    'Direction',doas(:,2),'WeightsOutputPort',true);
+    'Direction',doas(:,1),'WeightsOutputPort',true);
 % beamformer = phased.PhaseShiftBeamformer(...
 %     'SensorArray',Geometry.BSarray,...
 %     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
 %     'Direction',Geometry.DOAV1Start','WeightsOutputPort',true);
 [arrOut,w] = beamformer(chOut);
+
+
+% % Plot Output of Beamformer
+% figure;
+% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
+% title('Output of Beamformer');
+% xlabel('Time (s)');ylabel('Magnitude (V)');
 
 
 % Plot array pattern at azimuth = 0°
@@ -184,7 +191,7 @@ dataOut_notbeam = dataOut_notbeam(:);
 
 
 % With beamformer
-out = ofdmDemod2(arrOut);
+out = ofdmDemod1(arrOut);
 figure;
 
 x = real(out);
@@ -195,7 +202,7 @@ scatter(x,y);
 
 dataOut_beam = qamdemod(out,M,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
-[numErrorsG_beam,berG_beam] = biterr(in2,dataOut_beam)
+[numErrorsG_beam,berG_beam] = biterr(in1,dataOut_beam)
 
 
 
