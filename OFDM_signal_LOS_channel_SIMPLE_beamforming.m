@@ -47,19 +47,21 @@ viewArray(Geometry.confarray);
 
 %% Waveform, Modulators and Demodulators Generation
 % OFDM configuration:
+NumSymbols = 150;
 ofdmMod1 = comm.OFDMModulator('FFTLength', 12, ...
     'NumGuardBandCarriers', [1;1], ...
     'InsertDCNull', false, ...
     'CyclicPrefixLength', [0], ...
     'Windowing', false, ...
-    'NumSymbols', 140, ...
+    'NumSymbols', NumSymbols, ...
     'NumTransmitAntennas', 1, ...
     'PilotInputPort', true, ...
     'PilotCarrierIndices', [11]);
 
 M = 4; 	 % Modulation order
 % input bit source:
-in1 = randi([0 1], 2520, 1);
+%in1 = randi([0 1], 2520, 1);
+in1 = randi([0 1], 9*NumSymbols*2, 1);
 
 dataInput1 = qammod(in1, M, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
 ofdmInfo1 = info(ofdmMod1);
@@ -67,7 +69,7 @@ ofdmSize1 = ofdmInfo1.DataInputSize;
 dataInput1 = reshape(dataInput1, ofdmSize1);
 
 % waveform generation:
-pilotInput1 = ones(1, 140, 1);
+pilotInput1 = ones(1, NumSymbols, 1);
 waveform1 = ofdmMod1(dataInput1, pilotInput1);
 
 Fs1 = 180000; 	
@@ -75,19 +77,21 @@ Fs1 = 180000;
 
 
 % OFDM configuration:
+% NumSymbols = 140;
 ofdmMod2 = comm.OFDMModulator('FFTLength', 12, ...
     'NumGuardBandCarriers', [1;1], ...
     'InsertDCNull', false, ...
     'CyclicPrefixLength', [0], ...
     'Windowing', false, ...
-    'NumSymbols', 140, ...
+    'NumSymbols', NumSymbols, ...
     'NumTransmitAntennas', 1, ...
     'PilotInputPort', true, ...
     'PilotCarrierIndices', [2]);
 
 M = 4; 	 % Modulation order
 % input bit source:
-in2 = randi([0 1], 2520, 1);
+% in2 = randi([0 1], 2520, 1);
+in2 = randi([0 1], 9*NumSymbols*2, 1);
 
 dataInput2 = qammod(in2, M, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
 ofdmInfo2 = info(ofdmMod2);
@@ -95,7 +99,7 @@ ofdmSize2 = ofdmInfo2.DataInputSize;
 dataInput2 = reshape(dataInput2, ofdmSize2);
 
 % waveform generation:
-pilotInput2 = ones(1, 140, 1);
+pilotInput2 = ones(1, NumSymbols, 1);
 waveform2 = ofdmMod2(dataInput2, pilotInput2);
 
 Fs2 = 180000; 		
@@ -107,16 +111,34 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 
 %% Channnel generation
+% LOS channel
+henv = phased.FreeSpace('SampleRate',Fs1,...
+    'OperatingFrequency',Pars.fc);
+
+vel1 = [0;0;0]; % tx and rx not moving
+vel2 = [0;0;0];
+
+
+w1 = step(henv,waveform1,...
+    Geometry.V1PosStart',...
+    Geometry.BSPos',...
+    vel1,...
+    vel2);
+
+w2 = step(henv,waveform2,...
+    Geometry.V2PosStart',...
+    Geometry.BSPos',...
+    vel1,...
+    vel2);
+
 % Calculation on waveform
-chOut = collectPlaneWave(Geometry.BSarray, [waveform1 waveform2],... % attention to dimension of waveforms
+chOut = collectPlaneWave(Geometry.BSarray, [w1 w2],... % attention to dimension of waveforms
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
     
 
 % Add AWGN
 Pars.SNR = 20; % dB
 chOut = awgn(chOut, Pars.SNR, 'measured');
-
-
 
 
 %% DOA Estimation with MUSIC
@@ -173,16 +195,29 @@ pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
 
 
 
-%% Scattergraph to see impact of BF
 
+%% Equalization of channel
+eqlms = comm.LinearEqualizer('Algorithm','LMS','NumTaps',8,'StepSize',0.03);
+eqlms.ReferenceTap = 1;
+mxStep = maxstep(eqlms,arrOut);
+numTraining = length(arrOut)/2;
+[arrOut,err,weights] = eqlms(arrOut,waveform1(1:numTraining));
+
+% figure;
+% plot(abs(err))
+% grid on; xlabel('Symbols'); ylabel('|e|');title('Equalizer Error Signal')
+
+
+
+%% Scattergraph to see impact of BF
 % Without beamformer
 out = ofdmDemod1(chOut(:,1)); % first antenna
 figure;
 
 x = real(out);
-x = reshape(x,[9*140,1]);
+x = reshape(x,[9*NumSymbols,1]);
 y = imag(out);
-y = reshape(y,[9*140,1]);
+y = reshape(y,[9*NumSymbols,1]);
 scatter(x,y);
 
 dataOut_notbeam = qamdemod(out,M,'OutputType','bit');
@@ -195,9 +230,9 @@ out = ofdmDemod1(arrOut);
 figure;
 
 x = real(out);
-x = reshape(x,[9*140,1]);
+x = reshape(x,[9*NumSymbols,1]);
 y = imag(out);
-y = reshape(y,[9*140,1]);
+y = reshape(y,[9*NumSymbols,1]);
 scatter(x,y);
 
 dataOut_beam = qamdemod(out,M,'OutputType','bit');
