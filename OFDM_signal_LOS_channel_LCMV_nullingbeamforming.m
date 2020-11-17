@@ -169,16 +169,16 @@ plotSpectrum(estimator);
 
 
 
-%% Minimum Variance Distortionless Response beamformer
-steeringvector = phased.SteeringVector(...
-    'SensorArray',Geometry.BSarray,...
-    'PropagationSpeed',Pars.c);
-beamformer = phased.LCMVBeamformer('DesiredResponse',1,...
-    'TrainingInputPort',true,'WeightsOutputPort',true);
-beamformer.Constraint = steeringvector(Pars.fc,doas(:,1));
-beamformer.DesiredResponse = 1;
-[arrOut,w] = beamformer(chOut,chOutInt);
-
+%% LCMV beamformer
+% steeringvector = phased.SteeringVector(...
+%     'SensorArray',Geometry.BSarray,...
+%     'PropagationSpeed',Pars.c);
+% beamformer = phased.LCMVBeamformer('DesiredResponse',1,...
+%     'TrainingInputPort',true,'WeightsOutputPort',true);
+% beamformer.Constraint = steeringvector(Pars.fc,doas(:,1));
+% beamformer.DesiredResponse = 1;
+% [arrOut,w] = beamformer(chOut,chOutInt);
+[arrOut,w] = Nullsteering_BF(Geometry,Pars, doas, chOut);
 
 
 % % Plot Output of Beamformer
