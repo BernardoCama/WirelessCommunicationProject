@@ -12,21 +12,29 @@ Rx = x_short*x_short.';
 
 r_xd = x_short.*(conj(d));
 
+N = 100;
+
 mu1 = 1/trace(Rx);
+
 
 % r_xd 100 x 16
 % w 100 x 16
 % Rx 100 x 100
-w_ = zeros(size(d,1), prod(Geometry.BSarray.Size));
+w_ = zeros(size(d,1)*N, prod(Geometry.BSarray.Size));
 w_(1,:) = s.*1/prod(Geometry.BSarray.Size);
+iter = 0;
 
-for i = 1:size(d,1)-1
-    w_(i+1,:) = w_(i,:) - mu1.*(Rx(i,i).*w_(i,:) - r_xd(i,:));
-    
+for k = 1: N
+    for i = 1:size(d,1)-1
+        iter = iter + 1;
+        w_(iter+1,:) = w_(iter,:) + mu1.*(Rx(i,i).*w_(iter,:) - r_xd(i,:));
+
+    end
+    mu1 = mu1 * (1/k)^0.3;
     
 end
 
-w = w_(end,:)';
+w = w_(end-2000,:)';
 
 y = (w.')*x';
 

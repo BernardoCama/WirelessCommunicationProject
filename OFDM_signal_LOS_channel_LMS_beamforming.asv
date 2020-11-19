@@ -194,7 +194,7 @@ N_training = round(length(chOut(:,1))/2);
 % grid on; xlabel('Symbols'); ylabel('|e|');title('Equalizer Error Signal')
 % 
 
-%arrOut1 = phaseCorrection2(arrOut, waveform1(1:100));
+arrOut1 = phaseCorrection(arrOut, waveform1(1:100));
 
 
 %% Scattergraph to see impact of BF
@@ -235,28 +235,17 @@ dataOut_beam = dataOut_beam(:);
 
 
 out = ofdmDemod1(arrOut);
-out = reshape(out,[9*NumSymbols,1]);
-dataInput1 = reshape(dataInput1,[9*NumSymbols,1]);
-out = phaseCorrection2(out, dataInput1(1:100));
-
 figure;
 
 
 
 x = real(out);
-% x = reshape(x,[9*NumSymbols,1]);
+x = reshape(x,[9*NumSymbols,1]);
 y = imag(out);
-% y = reshape(y,[9*NumSymbols,1]);
+y = reshape(y,[9*NumSymbols,1]);
 scatter(x,y);
 
 dataOut_beam = qamdemod(out,M,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(in1(1:end),dataOut_beam(1:end))
-
-
-
-
-
-
-
 
