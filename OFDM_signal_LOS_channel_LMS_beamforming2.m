@@ -223,6 +223,12 @@ nTrain = round(length(chOut(:,1)) / 2);
 % OFDM demodulated signal with beamformer at first antenna:
 [chOut_BF, pilotOut_BF] = step(ofdmDemod1, arrOut);
 
+
+%% QAM demodulation for 1 pilot
+
+pilotOut_BF_outQAM = qamdemod(pilotOut_BF(1, :), M1, 'OutputType', 'bit');
+pilotOut_BF_outQAM = pilotOut_BF_outQAM(1, :);
+ 
 %% Channel estimation (pilot-based)
 
 % Number of points for the fft for channel estimation (pilotIn: length(pilot_indices) x nSymbols):
@@ -232,16 +238,13 @@ nfft_ch = 2^nextpow2(length(pilotInput1(1, :)));
 X_pilots = fft(pilotInput1(1, :), nfft_ch);
 
 % FFT of received pilots (wiht BF):
-Y_pilots_BF = fft(pilotOut_BF(1, :), nfft_ch);
+Y_pilots_BF = fft(pilotOut_BF_outQAM(1, :), nfft_ch);
 
 % Channel frequency response:
 H_estimated = Y_pilots_BF ./ (X_pilots + 0.001);
 
-% Channel impulse response =
+% Channel impulse response:
 h_estimated = ifft(H_estimated);
-
-% Channel z response:
-H_z = ztrans(h_estimated,1/z);
 
 %% Channel equalization (MMSE algorithm)
 % Symbols of training
@@ -264,12 +267,67 @@ chOut_BF = chOut_BF(:);
 % Equalization filter
 G = H_estimated'.*(H_estimated*H_estimated.' + 1/Pars.SNR)^-1;
 
+% Signal to be equalized:
+chOut_to_equal = chOut_BF(n_training + 1 : end);
+len = length(chOut_to_equal);
+
+% Window for equalzation:
+winLen = 60;
+win = hann(winLen);
+hopsize = winLen / 2;
+
+nFrame = floor((len - winLen) / hopsize);
+
+nG = length(G);
+conv_len = len + nG - 1;
+
+chOut_equal = zeros(conv_len, 1);
+
+nfft = len + nG - 1;
+
+g = ifft(G);
+G = fft(g, nfft);
+
+for i = 1 : nFrame
+
+    start = (i-1) * hopsize + 1;
+    stop = (i-1) * hopsize + winLen;
+    x = chOut_to_equal(start:stop) .* win;
+    
+    X = fft(x, nfft);
+    
+    Y = X .* G;
+    y = ifft(Y);
+    
+    start_ola = (i-1) * hopsize + 1;
+    stop_ola = (i-1) * hopsize + (winLen + nG - 1);
+    
+    y = y(1 : (winLen + nG - 1));
+    chOut_equal(start_ola:stop_ola) = chOut_equal(start_ola:stop_ola) + y;
+ 
+end
+
+chOut_equal = chOut_equal(1:len);
+
 
 %% QAM demodulation
 
 % No beamformer:
 
 % Beamformer:
+
+
+
+% With beamformer
+figure;
+
+x = real(chOut_equal);
+y = imag(chOut_equal);
+scatter(x,y);
+
+% dataOut_beam = qamdemod(chOut_equal,M,'OutputType','bit');
+% dataOut_beam = dataOut_beam(:);
+% [numErrorsG_beam,berG_beam] = biterr(in1(1:end),dataOut_beam(1:end))
 
 %% Plots for result comparison
 
