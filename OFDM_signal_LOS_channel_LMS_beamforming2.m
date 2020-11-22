@@ -64,7 +64,8 @@ nSymbols1 = 80;
 pilot_indices1 = [12, 26, 40, 54]';
 
 % Nfft for OFDM modulation
-nfft  = 256;
+% nfft  = 256;
+nfft  = 128;
 
 % First OFDM modulator:
 ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
@@ -139,8 +140,8 @@ ofdmDemod1 = comm.OFDMDemodulator(ofdmMod1);
 ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 % Visualizing OFDM mapping:
-showResourceMapping(ofdmMod1);
-title('OFDM modulators (1 = 2)');
+% showResourceMapping(ofdmMod1);
+% title('OFDM modulators (1 = 2)');
 
 %% LoS Channel 
 
@@ -177,6 +178,8 @@ Pars.SNR = 20; % in dB
 % chOut = chOut + noise;
 chOut_noise = awgn(chOut, Pars.SNR, 'measured');
 noise = chOut_noise - chOut;
+chOut = chOut_noise;
+
 
 %% Estimation of DoA (MUSIC algorithm)
 
@@ -237,17 +240,30 @@ H_estimated = Y_pilots_BF ./ (X_pilots + 0.001);
 % Channel impulse response =
 h_estimated = ifft(H_estimated);
 
+% Channel z response:
+H_z = ztrans(h_estimated,1/z);
+
 %% Channel equalization (MMSE algorithm)
+% Symbols of training
+n_training = 100;
+dataInput1 = dataInput1(:);
+chOut_BF = chOut_BF(:);
 
 % Autocorrelation matrix of noise:
-R_noise = noise * noise';
+% R_noise = noise * noise';
+% R_noise = mean(abs(chOut_BF).^2)/Pars.SNR;
 
 % Autocorrelation of sent signal:
-waveform = waveform1 + waveform2;
-R_wf = waveform * waveform';
+% waveform = waveform1 + waveform2;
+% R_wf = waveform * waveform';
+% R_dataInput1 = mean(abs(dataInput1(1:n_training)).^2);
 
 % Equalized signal: 
-chOut_eq = (h_estimated' * inv(R_noise) * h_estimated + inv(R_wf)) * H' * inv(R_noise) * waveform;
+% chOut_eq = (h_estimated' * inv(R_noise) * h_estimated + inv(R_wf)) * h_estimated' * inv(R_noise) * waveform;
+
+% Equalization filter
+G = H_estimated'.*(H_estimated*H_estimated.' + 1/Pars.SNR)^-1;
+
 
 %% QAM demodulation
 
