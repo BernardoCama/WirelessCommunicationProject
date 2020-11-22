@@ -110,9 +110,10 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 
 %% Channnel generation
+
 % LOS channel
-henv = phased.FreeSpace('SampleRate',Fs1,...
-    'OperatingFrequency',Pars.fc);
+henv = phased.FreeSpace('SampleRate', Fs1,...
+    'OperatingFrequency', Pars.fc);
 
 vel1 = [0;0;0]; % tx and rx not moving
 vel2 = [0;0;0];
