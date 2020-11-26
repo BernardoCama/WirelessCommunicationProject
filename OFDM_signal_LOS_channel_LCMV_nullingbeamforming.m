@@ -45,7 +45,7 @@ Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
 Nant = 4;
-Geometry.BSarray = phased.URA('Size', [4 4], ...
+Geometry.BSarray = phased.URA('Size', [16 16], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
 % Getting position antenna array:
@@ -58,25 +58,22 @@ Geometry.confarray = phased.ConformalArray('ElementPosition', Geometry.BSAntenna
 %% Generation of ODFM modulators and demodulators, M-QAM modulators and waveforms
 
 % Number of ODFM symbols:
-nSymbols1 = 150;
+nSymbols1 = 80;
 
 % Pilots symbols positioning at first antenna
-pilot_indices1 = [2]';
+pilot_indices1 = [11]';
 
 % Band Carriers
 NumGuardBandCarriers = [1;1];
 
 % Nfft for OFDM modulation
-nfft  = 12;
-
-% CyclicPrefixLength
-CyclicPrefixLength  = [0];
+nfft  = 128;
 
 % First OFDM modulator:
 ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ... % Default values
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', CyclicPrefixLength, ...
+    'CyclicPrefixLength', [0], ...
     'Windowing', false, ...
     'NumSymbols', nSymbols1, ...
     'NumTransmitAntennas', 1, ...
@@ -87,7 +84,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
 M1 = 4;
 
 % Generation of random bits:
-bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * 2, 1);
+bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum([1;1]))) * nSymbols1 * 2, 1);
 
 % Mudulation of bit_in_1 with QAM modulator:
 dataInput1 = qammod(bitInput1, M1, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
@@ -105,14 +102,14 @@ waveform1 = ofdmMod1(dataInput1, pilotInput1);
 Fs1 = 180000;
 
 % Pilot indices for second modulator:
-pilot_indices2 = pilot_indices1 + 8;
+pilot_indices2 = pilot_indices1 + 5;
 
 % Definition of a second OFDM modulator (different pilot carrier indices and different number of symbols):
 nSymbols2 = nSymbols1;
 ofdmMod2 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ...
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', CyclicPrefixLength, ...
+    'CyclicPrefixLength', [0], ...
     'Windowing', false, ...
     'NumSymbols', nSymbols2, ...
     'NumTransmitAntennas', 1, ...
@@ -123,7 +120,7 @@ ofdmMod2 = comm.OFDMModulator('FFTLength', nfft, ...
 M2 = M1;
 
 % Generation of a second random string of bits:
-bitInput2 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols2 * 2, 1);
+bitInput2 = randi([0 1], (nfft - (length(pilot_indices1) + sum([1;1]))) * nSymbols2 * 2, 1);
 
 % QAM modulation of bitInput2:
 dataInput2 = qammod(bitInput2, M2, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
@@ -175,7 +172,7 @@ w2 = step(h_env, waveform2, ...
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
 chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
-
+    
 % Adding AWGN noise to waveform:
 Pars.SNR = 20; % in dB
 % 
@@ -220,7 +217,9 @@ DoAs(:,2) = temp1;
 % beamformer.Constraint = steeringvector(Pars.fc,doas(:,1));
 % beamformer.DesiredResponse = 1;
 % [arrOut,w] = beamformer(chOut,chOutInt);
-[arrOut,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
+
+
+[arrOut, w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
 
 
 % % Plot Output of Beamformer
@@ -231,18 +230,17 @@ DoAs(:,2) = temp1;
 
 
 % Plot array pattern at azimuth = 0°
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','polar','Weights',w)
-% 
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','rectangular','Weights',w)
+figure;
+pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+    'PropagationSpeed',Pars.c,...
+    'Type','powerdb',...
+    'CoordinateSystem','polar','Weights',w)
 
+figure;
+pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+    'PropagationSpeed',Pars.c,...
+    'Type','powerdb',...
+    'CoordinateSystem','rectangular','Weights',w)
 
 %% OFDM demodulation
 
@@ -250,8 +248,6 @@ DoAs(:,2) = temp1;
 %[chOut_BF, pilotOut_BF] = step(ofdmDemod1, arrOut);
 chOut_BF= ofdmDemod1(arrOut);
 
-
- 
 %% Channel estimation
 
 % OFDM symbol used to train
@@ -273,8 +269,6 @@ H_estimated = Y ./ (X);
 % Channel impulse response:
 h_estimated = ifft(H_estimated);
 
-
-
 %% Channel equalization (MMSE algorithm)
 
 % Equalization filter
@@ -291,72 +285,13 @@ G = [mean(mean(G,2),1)];
 % Considering H as ideal channel (only in each subcarrier) that introduces only a phase shift
 % G = [mean(G,2)];
 
-
-
-% Signal to be equalized:
-% g = ifft(G);
-% chOut_equal = zeros(size(chOut_BF,1),size(chOut_BF,2));
-% for f=1:nfft_ch
-%     G = fft(g(f,:), size(chOut_BF,2));
-%     Y = fft(chOut_BF(f,:), size(chOut_BF,2));
-%     % chOut_equal(f,:) = conv(g(f,:), chOut_BF(f,:));
-%     % chOut_equal(f,:) = cconv(g(f,:),chOut_BF(f,:),size(chOut_BF,2));
-%     chOut_equal(f,:) = ifft(G.*Y);
-% end
-
-
-chOut_equal = (G).*chOut_BF(:,n_training+1:end);
+% Equalizing:
+chOut_equal = (G).*chOut_BF(:,1:end);
 chOut_equal = chOut_equal(:);
 
+%% QAM demodulation
 
-
-
-%{
-% Window for equalzation:
-winLen = 60;
-win = hann(winLen);
-hopsize = winLen / 2;
-
-nFrame = floor((len - winLen) / hopsize);
-
-nG = length(G);
-conv_len = len + nG - 1;
-
-chOut_equal = zeros(conv_len, 1);
-
-nfft = len + nG - 1;
-
-g = ifft(G);
-G = fft(g, nfft);
-
-for i = 1 : nFrame
-
-    start = (i-1) * hopsize + 1;
-    stop = (i-1) * hopsize + winLen;
-    x = chOut_to_equal(start:stop) .* win;
-    
-    X = fft(x, nfft);
-    
-    Y = X .* G;
-    y = ifft(Y);
-    
-    start_ola = (i-1) * hopsize + 1;
-    stop_ola = (i-1) * hopsize + (winLen + nG - 1);
-    
-    y = y(1 : (winLen + nG - 1));
-    chOut_equal(start_ola:stop_ola) = chOut_equal(start_ola:stop_ola) + y;
- 
-end
-
-chOut_equal = chOut_equal(1:len);
-%}
-
-
-
-
-%% Scattergraph to see impact of BF
-
-% No beamformer without equalization:
+% No beamformer:
 out = ofdmDemod1(chOut(:,1)); % first antenna
 figure;
 
@@ -367,7 +302,7 @@ y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 scatter(x,y);
 
 
-% With beamformer without equalization
+% With beamformer with equalization
 out = ofdmDemod1(arrOut);
 figure;
 
