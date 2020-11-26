@@ -210,16 +210,39 @@ DoAs(:,2) = temp1;
 % figure();
 % plotSpectrum(estimator);
 
-%% LMS beamformer
-% We use the first half of the received signal for the LMS algorithm, 
-% finding then the weights to be assigned to each antenna and applying the
-% to the received singal for better reception.
 
-% Training sequence length:
-nTrain = round(length(chOut(:,1)) / 2);
+%% LCMV beamformer
+% steeringvector = phased.SteeringVector(...
+%     'SensorArray',Geometry.BSarray,...
+%     'PropagationSpeed',Pars.c);
+% beamformer = phased.LCMVBeamformer('DesiredResponse',1,...
+%     'TrainingInputPort',true,'WeightsOutputPort',true);
+% beamformer.Constraint = steeringvector(Pars.fc,doas(:,1));
+% beamformer.DesiredResponse = 1;
+% [arrOut,w] = beamformer(chOut,chOutInt);
+[arrOut,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
 
-% Applying LMS beamformer:
-[arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
+
+% % Plot Output of Beamformer
+% figure;
+% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
+% title('Output of Beamformer');
+% xlabel('Time (s)');ylabel('Magnitude (V)');
+
+
+% Plot array pattern at azimuth = 0°
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','polar','Weights',w)
+% 
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','rectangular','Weights',w)
+
 
 %% OFDM demodulation
 
@@ -249,6 +272,8 @@ H_estimated = Y ./ (X);
 
 % Channel impulse response:
 h_estimated = ifft(H_estimated);
+
+
 
 %% Channel equalization (MMSE algorithm)
 
@@ -326,7 +351,10 @@ end
 chOut_equal = chOut_equal(1:len);
 %}
 
-%% QAM demodulation
+
+
+
+%% Scattergraph to see impact of BF
 
 % No beamformer without equalization:
 out = ofdmDemod1(chOut(:,1)); % first antenna
@@ -364,8 +392,5 @@ scatter(x,y);
 dataOut_beam = qamdemod(chOut_equal,M1,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
-
-
-
 
 

@@ -42,7 +42,7 @@ Geometry.BSarray = phased.URA('Size',[4 4],...
 Geometry.BSAntennaPos = getElementPosition(Geometry.BSarray);
 
 Geometry.confarray = phased.ConformalArray('ElementPosition',Geometry.BSAntennaPos);
-viewArray(Geometry.confarray);
+% viewArray(Geometry.confarray);
 
 
 %% Waveform, Modulators and Demodulators Generation
@@ -156,8 +156,8 @@ temp1 = doas(:,1);
 doas(:,1) = doas(:,2);
 doas(:,2) = temp1;
 
-figure
-plotSpectrum(estimator);
+% figure
+% plotSpectrum(estimator);
 
 
 
@@ -181,17 +181,17 @@ plotSpectrum(estimator);
 
 
 % Plot array pattern at azimuth = 0°
-figure;
-pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-    'PropagationSpeed',Pars.c,...
-    'Type','powerdb',...
-    'CoordinateSystem','polar','Weights',w)
-
-figure;
-pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-    'PropagationSpeed',Pars.c,...
-    'Type','powerdb',...
-    'CoordinateSystem','rectangular','Weights',w)
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','polar','Weights',w)
+% 
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','rectangular','Weights',w)
 
 
 
@@ -206,6 +206,11 @@ numTraining = length(arrOut)/2;
 % figure;
 % plot(abs(err))
 % grid on; xlabel('Symbols'); ylabel('|e|');title('Equalizer Error Signal')
+
+% n_taps = 10;
+% h = estimateCh(arrOut,waveform1(1:numTraining), n_taps);
+
+
 
 
 
@@ -227,12 +232,14 @@ dataOut_notbeam = dataOut_notbeam(:);
 
 % With beamformer
 out = ofdmDemod1(arrOut);
+out = out(:);
+
 figure;
 
 x = real(out);
-x = reshape(x,[9*NumSymbols,1]);
+%x = reshape(x,[9*NumSymbols,1]);
 y = imag(out);
-y = reshape(y,[9*NumSymbols,1]);
+%y = reshape(y,[9*NumSymbols,1]);
 scatter(x,y);
 
 dataOut_beam = qamdemod(out,M,'OutputType','bit');
