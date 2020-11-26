@@ -58,7 +58,7 @@ Geometry.confarray = phased.ConformalArray('ElementPosition', Geometry.BSAntenna
 %% Generation of ODFM modulators and demodulators, M-QAM modulators and waveforms
 
 % Number of ODFM symbols:
-nSymbols1 = 80;
+nSymbols1 = 100;
 
 % Pilots symbols positioning at first antenna
 pilot_indices1 = [11]';
@@ -67,13 +67,16 @@ pilot_indices1 = [11]';
 NumGuardBandCarriers = [1;1];
 
 % Nfft for OFDM modulation
-nfft  = 128;
+nfft  = 32;
+
+% Cyclic prefix length:
+CPlen = [0];
 
 % First OFDM modulator:
 ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ... % Default values
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', [0], ...
+    'CyclicPrefixLength', CPlen, ...
     'Windowing', false, ...
     'NumSymbols', nSymbols1, ...
     'NumTransmitAntennas', 1, ...
@@ -84,7 +87,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
 M1 = 4;
 
 % Generation of random bits:
-bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum([1;1]))) * nSymbols1 * 2, 1);
+bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
 
 % Mudulation of bit_in_1 with QAM modulator:
 dataInput1 = qammod(bitInput1, M1, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
@@ -109,7 +112,7 @@ nSymbols2 = nSymbols1;
 ofdmMod2 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ...
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', [0], ...
+    'CyclicPrefixLength', CPlen, ...
     'Windowing', false, ...
     'NumSymbols', nSymbols2, ...
     'NumTransmitAntennas', 1, ...
@@ -120,7 +123,7 @@ ofdmMod2 = comm.OFDMModulator('FFTLength', nfft, ...
 M2 = M1;
 
 % Generation of a second random string of bits:
-bitInput2 = randi([0 1], (nfft - (length(pilot_indices1) + sum([1;1]))) * nSymbols2 * 2, 1);
+bitInput2 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols2 * log2(M2), 1);
 
 % QAM modulation of bitInput2:
 dataInput2 = qammod(bitInput2, M2, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
@@ -152,8 +155,8 @@ h_env = phased.FreeSpace('SampleRate', Fs1, ...
     'OperatingFrequency', Pars.fc);
 
 % Velocities of veichles:
-vel1 = [0;0;0];
-vel2 = [0;0;0];
+vel1 = [0;1;0];
+vel2 = [1;0;0];
 
 % Response of waveform1 passing through channel:
 w1 = step(h_env, waveform1, ...
@@ -170,7 +173,7 @@ w2 = step(h_env, waveform2, ...
     vel2);
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
-chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
+chOut = collectPlaneWave(Geometry.BSarray, [w1 w1], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
     
 % Adding AWGN noise to waveform:
@@ -204,8 +207,8 @@ DoAs(:,1) = DoAs(:,2);
 DoAs(:,2) = temp1;
 
 % Plotting:
-% figure();
-% plotSpectrum(estimator);
+figure();
+plotSpectrum(estimator);
 
 
 %% LCMV beamformer
@@ -302,7 +305,7 @@ y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 scatter(x,y);
 
 
-% With beamformer with equalization
+% With beamformer without equalization
 out = ofdmDemod1(arrOut);
 figure;
 
