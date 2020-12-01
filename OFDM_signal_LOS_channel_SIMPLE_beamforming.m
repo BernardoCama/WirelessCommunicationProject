@@ -149,28 +149,18 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 % title('OFDM modulators (1 = 2)');
 
 %% LoS Channel 
-
 % Generation of LoS channel:
-h_env = phased.FreeSpace('SampleRate', Fs1, ...
-    'OperatingFrequency', Pars.fc);
+dist1 = dist3D(Geometry.V1PosStart,Geometry.BSPos);
+w1 = waveform1.*(4*pi*dist1/Pars.lambda).^2.*exp(-1i*2*pi*dist1/Pars.lambda);
+dist2 = dist3D(Geometry.V2PosStart,Geometry.BSPos);
+w2 = waveform2.*(4*pi*dist2/Pars.lambda).^2.*exp(-1i*2*pi*dist2/Pars.lambda);
+
 
 % Velocities of veichles:
 vel1 = [0;0;0];
 vel2 = [0;0;0];
 
-% Response of waveform1 passing through channel:
-w1 = step(h_env, waveform1, ...
-    Geometry.V1PosStart', ...
-    Geometry.BSPos', ...
-    vel1, ...
-    vel2);
 
-% Response of waveform2 passing through channel:
-w2 = step(h_env, waveform2, ...
-    Geometry.V2PosStart', ...
-    Geometry.BSPos', ...
-    vel1, ...
-    vel2);
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
 chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
@@ -285,11 +275,9 @@ for f=1:n_training
 
 end
 
-% Considering H as ideal channel (in all frequences) that introduces only a phase shift
-G = [mean(mean(G,2),1)];
 
 % Considering H as ideal channel (only in each subcarrier) that introduces only a phase shift
-% G = [mean(G,2)];
+G = [mean(G,2)];
 
 
 

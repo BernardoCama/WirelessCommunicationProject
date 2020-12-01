@@ -5,10 +5,9 @@ steervec = phased.SteeringVector('SensorArray',Geometry.BSarray);
 
 s = steervec(Pars.fc, doas);
 
-
 x_short = x(1:size(d,1),:);
 
-Rx = x_short*x_short.';
+Rx = x_short*x_short';
 
 r_xd = x_short.*(conj(d));
 
@@ -34,11 +33,11 @@ for k = 1: N
     
 end
 
-w = w_(end-2000,:)';
+w = w_(end-2000,:).';
 
-y = (w.')*x';
+y = (w')*x.';
 
-y = y';
+y = y.';
 end
 
 % doas = 2 x (1 + N_interf) direction of signal + interf
