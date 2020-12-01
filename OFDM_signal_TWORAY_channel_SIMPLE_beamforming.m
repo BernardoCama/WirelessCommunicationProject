@@ -148,10 +148,24 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 % showResourceMapping(ofdmMod1);
 % title('OFDM modulators (1 = 2)');
 
-%% LoS Channel 
+%% Two Ray Channel Channel 
 % Generation of LoS channel:
+Obstacles = [70, 100, 1.5];
+w1_Obs = LOS(waveform1, Geometry.V1PosStart, Obstacles, Pars);
+w2_Obs = LOS(waveform2, Geometry.V2PosStart, Obstacles, Pars);
+
+% Ground Coefficient
+% w1_Obs = -w1_Obs;
+% w2_Obs = -w2_Obs;
+
+wObs_1 = LOS(w1_Obs, Obstacles, Geometry.BSPos, Pars);
+wObs_2 = LOS(w2_Obs, Obstacles, Geometry.BSPos, Pars);
+
 w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
 w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
+
+w1 = w1 + wObs_1;
+w2 = w2 + wObs_2;
 
 
 % Velocities of veichles:

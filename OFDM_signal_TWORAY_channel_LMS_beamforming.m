@@ -45,7 +45,7 @@ Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
 Nant = 4;
-Geometry.BSarray = phased.URA('Size', [16 16], ...
+Geometry.BSarray = phased.URA('Size', [4 4], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
 % Getting position antenna array:
@@ -148,16 +148,29 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 % showResourceMapping(ofdmMod1);
 % title('OFDM modulators (1 = 2)');
 
-%% LoS Channel 
+%% Two Ray Channel Channel 
 % Generation of LoS channel:
+Obstacles = [70, 100, 1.5]; 
+w1_Obs = LOS(waveform1, Geometry.V1PosStart, Obstacles, Pars);
+w2_Obs = LOS(waveform2, Geometry.V2PosStart, Obstacles, Pars);
+
+% Ground Coefficient
+% w1_Obs = -w1_Obs;
+% w2_Obs = -w2_Obs;
+
+wObs_1 = LOS(w1_Obs, Obstacles, Geometry.BSPos, Pars);
+wObs_2 = LOS(w2_Obs, Obstacles, Geometry.BSPos, Pars);
+
 w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
 w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
+
+w1 = w1 + wObs_1;
+w2 = w2 + wObs_2;
 
 
 % Velocities of veichles:
 vel1 = [0;0;0];
 vel2 = [0;0;0];
-
 
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
@@ -198,41 +211,16 @@ DoAs(:,2) = temp1;
 % figure();
 % plotSpectrum(estimator);
 
+%% LMS beamformer
+% We use the first half of the received signal for the LMS algorithm, 
+% finding then the weights to be assigned to each antenna and applying the
+% to the received singal for better reception.
 
-%% Simple beamformer
-% beamformer = phased.PhaseShiftBeamformer(...
-%     'SensorArray',Geometry.BSarray,...
-%     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-%     'Direction',doas(:,1),'WeightsOutputPort',true);
-% % beamformer = phased.PhaseShiftBeamformer(...
-% %     'SensorArray',Geometry.BSarray,...
-% %     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-% %     'Direction',Geometry.DOAV1Start','WeightsOutputPort',true);
-% [arrOut,w] = beamformer(chOut);
-[arrOut,w] = Conventional_BF(Geometry,Pars, DoAs(:,1), chOut);
+% Training sequence length:
+nTrain = round(length(chOut(:,1)) / 2);
 
-% % Plot Output of Beamformer
-% figure;
-% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
-% title('Output of Beamformer');
-% xlabel('Time (s)');ylabel('Magnitude (V)');
-
-
-% Plot array pattern at azimuth = 0°
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','polar','Weights',w)
-% 
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','rectangular','Weights',w)
-
-
-
+% Applying LMS beamformer:
+[arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
 
 %% OFDM demodulation
 
@@ -295,6 +283,48 @@ chOut_equal = (G).*chOut_BF(:,n_training+1:end);
 chOut_equal = chOut_equal(:);
 
 
+
+
+%{
+% Window for equalzation:
+winLen = 60;
+win = hann(winLen);
+hopsize = winLen / 2;
+
+nFrame = floor((len - winLen) / hopsize);
+
+nG = length(G);
+conv_len = len + nG - 1;
+
+chOut_equal = zeros(conv_len, 1);
+
+nfft = len + nG - 1;
+
+g = ifft(G);
+G = fft(g, nfft);
+
+for i = 1 : nFrame
+
+    start = (i-1) * hopsize + 1;
+    stop = (i-1) * hopsize + winLen;
+    x = chOut_to_equal(start:stop) .* win;
+    
+    X = fft(x, nfft);
+    
+    Y = X .* G;
+    y = ifft(Y);
+    
+    start_ola = (i-1) * hopsize + 1;
+    stop_ola = (i-1) * hopsize + (winLen + nG - 1);
+    
+    y = y(1 : (winLen + nG - 1));
+    chOut_equal(start_ola:stop_ola) = chOut_equal(start_ola:stop_ola) + y;
+ 
+end
+
+chOut_equal = chOut_equal(1:len);
+%}
+
 %% QAM demodulation
 
 % No beamformer without equalization:
@@ -333,4 +363,8 @@ scatter(x,y);
 dataOut_beam = qamdemod(chOut_equal,M1,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
+
+
+
+
 

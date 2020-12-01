@@ -45,7 +45,7 @@ Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
 Nant = 4;
-Geometry.BSarray = phased.URA('Size', [4 4], ...
+Geometry.BSarray = phased.URA('Size', [16 16], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
 % Getting position antenna array:
@@ -150,10 +150,8 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 %% LoS Channel 
 % Generation of LoS channel:
-dist1 = dist3D(Geometry.V1PosStart,Geometry.BSPos);
-w1 = waveform1.*(4*pi*dist1/Pars.lambda).^2.*exp(-1i*2*pi*dist1/Pars.lambda);
-dist2 = dist3D(Geometry.V2PosStart,Geometry.BSPos);
-w2 = waveform2.*(4*pi*dist2/Pars.lambda).^2.*exp(-1i*2*pi*dist2/Pars.lambda);
+w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
+w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
 
 % Velocities of veichles:
 vel1 = [0;0;0];
@@ -161,7 +159,7 @@ vel2 = [0;0;0];
 
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
-chOut = collectPlaneWave(Geometry.BSarray, [w1 w1], ...
+chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
 
 % Adding AWGN noise to waveform:
