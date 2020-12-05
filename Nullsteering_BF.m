@@ -19,10 +19,7 @@ w = w_H';
 y = (w_H)*x.';
 
 y = y.';
+
+% s.t. w_H*s = [1 0*N_interf]
 end
 
-% doas = 2 x (1 + N_interf) direction of signal + interf
-% s = 2 x (1 + N_interf)
-% x = 1800 x 16 signal received from each antenna
-% w = 16 x 1 
-% y = 1800 x 1 signal in output

@@ -1,50 +1,37 @@
-function g = gradient_descent(x, d, tolerance, min_perturb, max_iter)
-
-d = d.';
-x = x.';
-
-X = fft(x);
-D = fft(d);
-
-% Initialization;
-g_ = zeros(size(d,1)*max_iter, length(x));
-g_(1, :) = ifft(X ./ (D + 0.001));
+function g = Gradient_descent(x, d, training_seq ,   max_iter, g_len)
 
 
-Rx = x*x';
 
-r_xd = x.*(conj(d));
+% autocorrelation of the input 
+auto_corr_vec = xcorr(x,x,'unbiased');
+mid_point = (length(auto_corr_vec)+1)/2;
+c = auto_corr_vec(mid_point:mid_point+g_len-1); % first column of toeplitz 
+r = fliplr(auto_corr_vec(mid_point-g_len+1:mid_point));
+Rvv_Matrix = toeplitz(c,r);
 
-mu1 = 1/trace(Rx);
+
+% Rvv_Matrix = x'*x;
+% Rvv_Matrix = Rvv_Matrix(1:g_len, 1:g_len);
 
 
-% r_xd 100 x 16
-% g 100 x 16
-% Rx 100 x 100
+% cross correlation 
+cross_corr_vec = xcorr(d,x(1:training_seq),'unbiased');
+MID_POINT = (length(cross_corr_vec)+1)/2;
+cross_corr_vec = cross_corr_vec(MID_POINT:MID_POINT+g_len-1).';
 
-iter = 0;
-    
-for k = 1 : max_iter
-    
-    for i = 1 : size(d,1)-1
-        
-        iter = iter + 1;
-        g_(iter+1,:) = g_(iter,:) + mu1.*(Rx(i,i).*g_(iter,:) - r_xd(i,:));
+% cross_corr_vec = xcorr(d,x(1:training_seq),'unbiased');
+% cross_corr_vec = cross_corr_vec(1:g_len);
 
-    end
-
-    mu1 = mu1 * (1/k)^0.3;
-    
+%---------------------------------------------
+max_step_size = 1/(max(eig(Rvv_Matrix)));% maximum step size
+%max_step_size = 2/(sum(eig(Rvv_Matrix)));% maximum step size
+step_size = 0.125*max_step_size;
+g = zeros(g_len,1);
+for i= 1:max_iter
+    g = g+step_size*(cross_corr_vec - Rvv_Matrix*g);
 end
+g=g.'; % now a row vector
 
-g = g_(end/2, :).';
 
 end
 
-% doas = 2 x (1 + N_interf) direction of signal + interf
-% s = 2 x (1 + N_interf)
-% x = 1800 x 16 signal received from each antenna
-% x = 100 x 16
-% d = 100 x 16
-% g = 16 x 1 
-% y = 1800 x 1 signal in output

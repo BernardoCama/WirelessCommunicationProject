@@ -40,10 +40,3 @@ y = (w')*x.';
 y = y.';
 end
 
-% doas = 2 x (1 + N_interf) direction of signal + interf
-% s = 2 x (1 + N_interf)
-% x = 1800 x 16 signal received from each antenna
-% x_short = 100 x 16
-% d = 100 x 16
-% w = 16 x 1 
-% y = 1800 x 1 signal in output

@@ -45,7 +45,7 @@ Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
 Nant = 4;
-Geometry.BSarray = phased.URA('Size', [16 16], ...
+Geometry.BSarray = phased.URA('Size', [Nant Nant], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
 % Getting position antenna array:
@@ -180,7 +180,7 @@ chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
 
 % Adding AWGN noise to waveform:
 Pars.SNR = 20; % in dB
-% 
+
 chOut_noise = awgn(chOut, Pars.SNR, 'measured');
 noise = chOut_noise - chOut;
 chOut = chOut_noise;
@@ -213,17 +213,42 @@ DoAs(:,2) = temp1;
 % plotSpectrum(estimator);
 
 
-%% Simple beamformer
-% beamformer = phased.PhaseShiftBeamformer(...
-%     'SensorArray',Geometry.BSarray,...
-%     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-%     'Direction',doas(:,1),'WeightsOutputPort',true);
-% % beamformer = phased.PhaseShiftBeamformer(...
-% %     'SensorArray',Geometry.BSarray,...
-% %     'OperatingFrequency',Pars.fc,'PropagationSpeed',Pars.c,...
-% %     'Direction',Geometry.DOAV1Start','WeightsOutputPort',true);
-% [arrOut,w] = beamformer(chOut);
-[arrOut,w] = Conventional_BF(Geometry,Pars, DoAs(:,1), chOut);
+
+
+
+%% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
+Type = 2;
+
+switch Type
+    
+    case 0
+        [arrOut,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut);
+
+    case 1     
+        [arrOut,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
+        
+    case 2       
+        [arrOut,w] = MVDR_BF(Geometry, Pars, DoAs(:,1), chOut);
+        
+    case 3
+        % We use the first half of the received signal for the LMS algorithm, 
+        % finding then the weights to be assigned to each antenna and applying the
+        % to the received singal for better reception.
+
+        % Training sequence length:
+        nTrain = round(length(chOut(:,1)) / 2);
+
+        [arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
+    
+    case 4   
+        % Training sequence length:
+        nTrain = round(length(chOut(:,1)) / 2);
+        
+        [arrOut,w] = MMSE_BF(Geometry, Pars, chOut, waveform1(1:nTrain, :));
+        
+end
+
+
 
 % % Plot Output of Beamformer
 % figure;
@@ -248,68 +273,30 @@ DoAs(:,2) = temp1;
 
 
 
-%% OFDM demodulation
-
-% OFDM demodulated signal with beamformer at first antenna:
-%[chOut_BF, pilotOut_BF] = step(ofdmDemod1, arrOut);
-chOut_BF= ofdmDemod1(arrOut);
-
-
  
-%% Channel estimation
+%%  Channel equalization
 
 % OFDM symbol used to train
-n_training = 10;
+n_training = length(arrOut);
 
-% Number of points for the fft for channel estimation (pilotIn: length(pilot_indices) x nSymbols):
-%nfft_ch = 2^nextpow2(length(chOut_BF(:,1)));
-nfft_ch = length(chOut_BF(:,1));
+max_iter = 100;
 
-% FFT of received sequence:
-Y = fft(chOut_BF(:,1:n_training));
+% Tap of the equalizer
+g_len = 2;
 
-% FFT of know sequence:
-X = fft(dataInput1(:,1:n_training));
+g = Gradient_descent( arrOut.',  waveform1(1:n_training).', n_training, max_iter, g_len);
 
-% Channel frequency response:
-H_estimated = Y ./ (X);
+arrOut_ = conv(g,arrOut);
 
-% Channel impulse response:
-h_estimated = ifft(H_estimated);
+arrOut_equal = arrOut_(1:length(arrOut));
 
-%% Channel equalization (MMSE algorithm)
-
-% Equalization filter
-G = zeros(size(H_estimated,1),size(H_estimated,2));
-
-for f=1:n_training
-    G(:,f) = conj(H_estimated(:,f)).*(H_estimated(:,f)'*H_estimated(:,f) + 1/Pars.SNR)^-1;
-
-end
-
-
-% Considering H as ideal channel (only in each subcarrier) that introduces only a phase shift
-G = [mean(G,2)];
+ 
 
 
 
-% Signal to be equalized:
-% g = ifft(G);
-% chOut_equal = zeros(size(chOut_BF,1),size(chOut_BF,2));
-% for f=1:nfft_ch
-%     G = fft(g(f,:), size(chOut_BF,2));
-%     Y = fft(chOut_BF(f,:), size(chOut_BF,2));
-%     % chOut_equal(f,:) = conv(g(f,:), chOut_BF(f,:));
-%     % chOut_equal(f,:) = cconv(g(f,:),chOut_BF(f,:),size(chOut_BF,2));
-%     chOut_equal(f,:) = ifft(G.*Y);
-% end
 
 
-chOut_equal = (G).*chOut_BF(:,n_training+1:end);
-chOut_equal = chOut_equal(:);
-
-
-%% QAM demodulation
+%% OFDM demodulation and QAM demodulation
 
 % No beamformer without equalization:
 out = ofdmDemod1(chOut(:,1)); % first antenna
@@ -320,6 +307,13 @@ x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 y = imag(out);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
+title('no BF, no equal')
+
+dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
+dataOut_beam_noequal = dataOut_beam_noequal(:);
+[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,dataOut_beam_noequal(1:end))
+
+
 
 
 % With beamformer without equalization
@@ -332,19 +326,23 @@ y = imag(out);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-dataOut_beam = qamdemod(out,M1,'OutputType','bit');
-dataOut_beam = dataOut_beam(:);
-[numErrorsG_beam,berG_beam] = biterr(bitInput1,dataOut_beam(1:end))
+dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
+dataOut_beam_noequal = dataOut_beam_noequal(:);
+[numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,dataOut_beam_noequal(1:end))
+title('si BF, no equal')
 
 
 % With beamformer with equalization
+chOut_equal= ofdmDemod1(arrOut_equal);
 figure;
 
-x = real(chOut_equal(:));
-y = imag(chOut_equal(:));
+x = real(chOut_equal);
+x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
+y = imag(chOut_equal);
+y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
 dataOut_beam = qamdemod(chOut_equal,M1,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
-
+title('si BF, si equal')
