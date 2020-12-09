@@ -15,12 +15,29 @@ Pars.lambda = Pars.c / Pars.fc;
 Geometry.BSPos = [0, 0, 25];
 
 % First veichle (V1):
-Geometry.V1PosStart = [70, -100, 1.5]; % start
-Geometry.V1PosEnd = [70, 100, 1.5];    % end
+Geometry.V1PosStart = [70, -100, 1.5]; % start [m]
+Geometry.V1PosEnd = [70, 100, 1.5];    % end [m]
 
 % Second veichle (V2):
-Geometry.V2PosStart = [200, -50, 1.5]; % start 
-Geometry.V2PosEnd = [10, -50, 1.5];    % end
+Geometry.V2PosStart = [200, -50, 1.5]; % start [m]
+Geometry.V2PosEnd = [10, -50, 1.5];    % end [m]
+
+% Velocities of veichles:
+Geometry.vel1 = [0;200;0].* 1/50; % [m/s]
+Geometry.vel2 = [-190;0;0].* 1/50; % [m/s]
+
+% Coherence Time
+Geometry.fd = Pars.fc* max([sqrt(sum(Geometry.vel1.^2)) ; sqrt(sum(Geometry.vel2.^2))])/Pars.c; % [Hz]
+Geometry.Tc = 1/(20*Geometry.fd); % [s]
+
+% Frequency spacing
+Geometry.delta_f = 60e3; % [Hz]
+
+% Symbol Time
+Geometry.Ts = 17.84e-6; % [s]
+
+% Coherence Time in Symbols
+Geometry.Tc_symb = floor(Geometry.Tc/Geometry.Ts);
 
 % Interferents:
 Geometry.I1Pos = [10, -210, 1.5]; 
@@ -44,8 +61,8 @@ Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
-Geometry.Nant = 16;
-Geometry.BSarray = phased.URA('Size', [Geometry.Nant Geometry.Nant], ...
+Nant = 16;
+Geometry.BSarray = phased.URA('Size', [Nant Nant], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
 % Getting position antenna array:
@@ -55,22 +72,13 @@ Geometry.BSAntennaPos = getElementPosition(Geometry. BSarray);
 Geometry.confarray = phased.ConformalArray('ElementPosition', Geometry.BSAntennaPos);
 
 
-
-%% 3GPP Parameters
-% Frequency spacing
-Geometry.delta_f = 60e3;
-
-% Symbol Time
-Geometry.Ts = 17.84e-6;
-
-
 %% Generation of ODFM modulators and demodulators, M-QAM modulators and waveforms
 
 % Number of ODFM symbols:
 nSymbols1 = 100;
 
 % Pilots symbols positioning at first antenna
-pilot_indices1 = [11]';
+pilot_indices1 = [2]';
 
 % Band Carriers
 NumGuardBandCarriers = [1;1];
@@ -78,14 +86,14 @@ NumGuardBandCarriers = [1;1];
 % Nfft for OFDM modulation
 nfft  = 64;
 
-% Cyclic prefix length:
-CPlen = [4];
+% CyclicPrefixLength
+CyclicPrefixLength  = [4];
 
 % First OFDM modulator:
 ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ... % Default values
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', CPlen, ...
+    'CyclicPrefixLength', CyclicPrefixLength, ...
     'Windowing', false, ...
     'NumSymbols', nSymbols1, ...
     'NumTransmitAntennas', 1, ...
@@ -114,14 +122,14 @@ waveform1 = ofdmMod1(dataInput1, pilotInput1);
 Fs1 = 180000;
 
 % Pilot indices for second modulator:
-pilot_indices2 = pilot_indices1 + 5;
+pilot_indices2 = pilot_indices1 + 8;
 
 % Definition of a second OFDM modulator (different pilot carrier indices and different number of symbols):
 nSymbols2 = nSymbols1;
 ofdmMod2 = comm.OFDMModulator('FFTLength', nfft, ...
     'NumGuardBandCarriers', NumGuardBandCarriers, ...
     'InsertDCNull', false, ...
-    'CyclicPrefixLength', CPlen, ...
+    'CyclicPrefixLength', CyclicPrefixLength, ...
     'Windowing', false, ...
     'NumSymbols', nSymbols2, ...
     'NumTransmitAntennas', 1, ...
@@ -157,106 +165,14 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 % showResourceMapping(ofdmMod1);
 % title('OFDM modulators (1 = 2)');
 
-%% 3GPP Channel 
-% Velocities of veichles:
-vel1 = [0;0;0];
-vel2 = [0;0;0];
+%% LoS Channel 
+% Generation of LoS channel:
+w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
+w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
 
-
-% Create Layout Object
-l = qd_layout;
-l.set_scenario('QuaDRiGa_UD2D_LOS');
-
-% Define tx and rx
-txArr = qd_arrayant('omni');
-rxArr = qd_arrayant('omni');
-rxArr.no_elements = Geometry.Nant*Geometry.Nant ;
-rxArr.element_position = Geometry.BSAntennaPos;
-
-l.tx_array = txArr;
-l.rx_array = rxArr;
-l.no_rx = 1;
-l.no_tx = 4;
-
-% tx_track1 = qd_track('linear', Geometry.T1, pi/2);
-tx_track1 = qd_track('linear', 0, pi/2);
-tx_track1.name = 'trackV1';
-
-% tx_track2 = qd_track('linear', Geometry.T2, pi);
-tx_track2 = qd_track('linear', 0, pi);
-tx_track2.name = 'trackV2';
-
-tx_track1.initial_position = Geometry.V1PosStart';
-tx_track2.initial_position = Geometry.V2PosStart';
-
-l.tx_position = [Geometry.V1PosStart', Geometry.V2PosStart',...
-    Geometry.I1Pos', Geometry.I2Pos'];
-l.tx_track(1,1) = copy(tx_track1);
-l.tx_track(1,2) = copy(tx_track2);
-l.rx_position = Geometry.BSPos';
-
-
-% Visualize model
-% l.visualize();
-
-
-% Run the model
-l.set_pairing;
-chan = l.get_channels;
-
-% Veichle 1
-chTaps1 = size(chan(1).delay); % [16 1 34 2]
-TS = Geometry.Ts; 
-WFlenght = size(waveform1,1);
-chOut1 = zeros(chTaps1(1), WFlenght);
-TsVect = 0:TS:TS*(WFlenght-1);
-
-for antenna=1:1:chTaps1(1)
-    for path=1:1:chTaps1(3)
-        inX = TsVect - chan(1).delay(antenna, 1, path, 1);
-        inY = interp1(TsVect, waveform1, inX, 'pchip');
-        chOut1(antenna, :) = inY * chan(1).coeff(antenna, 1, path, 1)...
-            +chOut1(antenna, :);
-    end
-end
-
-
-% Veichle 2
-chTaps2 = size(chan(2).delay); % [16 1 34 2]
-TS = Geometry.Ts; 
-WFlenght = size(waveform2,1);
-chOut2 = zeros(chTaps2(1), WFlenght);
-TsVect = 0:TS:TS*(WFlenght-1);
-
-for antenna=1:1:chTaps2(1)
-    for path=1:1:chTaps2(3)
-        inX = TsVect - chan(2).delay(antenna, 1, path, 1);
-        inY = interp1(TsVect, waveform2, inX, 'pchip');
-        chOut2(antenna, :) = inY * chan(2).coeff(antenna, 1, path, 1)...
-            +chOut2(antenna, :);
-    end
-end
-
-
-chOut = chOut1 + chOut2;
-% chOut = chOut2;
-chOut = chOut.';
-
-
-
-% 
-% 
-% w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
-% w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
-% 
-% 
-% % Calucation of received wavefrom1 (attention to dimension of waveforms):
-% chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
-%         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
-%     
-
-
-
+% Calucation of received wavefrom1 (attention to dimension of waveforms):
+chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
+        [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
 
 % Adding AWGN noise to waveform:
 Pars.SNR = 20; % in dB
@@ -283,78 +199,96 @@ estimator = phased.MUSICEstimator2D( ...
 [~, DoAs] = estimator(chOut);
 
 % THIS IS FOR THIS SPECIFIC CASE -> NEED TO FIX FOR GENERAL CASE:
-% DoAs(1,:) = -(DoAs(1,:) - 180);
-% temp1 = DoAs(:,1);
-% DoAs(:,1) = DoAs(:,2);
-% DoAs(:,2) = temp1;
+DoAs(1,:) = -(DoAs(1,:) - 180);
+temp1 = DoAs(:,1);
+DoAs(:,1) = DoAs(:,2);
+DoAs(:,2) = temp1;
 
 % Plotting:
 % figure();
 % plotSpectrum(estimator);
 
 
-%% LMS beamformer
-% We use the first half of the received signal for the LMS algorithm, 
-% finding then the weights to be assigned to each antenna and applying the
-% to the received singal for better reception.
-
-% Training sequence length:
-nTrain = round(length(chOut(:,1)) / 2);
-
-% Applying LMS beamformer:
-[arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
 
 
+%% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
+Type = 0;
 
-%% OFDM demodulation
+switch Type
+    
+    case 0
+        [arrOut,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut);
 
-% OFDM demodulated signal with beamformer at first antenna:
-%[chOut_BF, pilotOut_BF] = step(ofdmDemod1, arrOut);
-chOut_BF= ofdmDemod1(arrOut);
+    case 1     
+        [arrOut,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
+        
+    case 2       
+        [arrOut,w] = MVDR_BF(Geometry, Pars, DoAs(:,1), chOut);
+        
+    case 3
+        % We use the first half of the received signal for the LMS algorithm, 
+        % finding then the weights to be assigned to each antenna and applying the
+        % to the received singal for better reception.
 
-%% Channel estimation
+        % Training sequence length:
+        nTrain = round(length(chOut(:,1)) / 2);
 
-% OFDM symbol used to train
-n_training = 10;
-
-% Number of points for the fft for channel estimation (pilotIn: length(pilot_indices) x nSymbols):
-%nfft_ch = 2^nextpow2(length(chOut_BF(:,1)));
-nfft_ch = length(chOut_BF(:,1));
-
-% FFT of received sequence:
-Y = fft(chOut_BF(:,1:n_training));
-
-% FFT of know sequence:
-X = fft(dataInput1(:,1:n_training));
-
-% Channel frequency response:
-H_estimated = Y ./ (X);
-
-% Channel impulse response:
-h_estimated = ifft(H_estimated);
-
-%% Channel equalization (MMSE algorithm)
-
-% Equalization filter
-G = zeros(size(H_estimated,1),size(H_estimated,2));
-
-for f=1:n_training
-    G(:,f) = conj(H_estimated(:,f)).*(H_estimated(:,f)'*H_estimated(:,f) + 1/Pars.SNR)^-1;
-
+        [arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
+    
+    case 4   
+        % Training sequence length:
+        nTrain = round(length(chOut(:,1)) / 2);
+        
+        [arrOut,w] = MMSE_BF(Geometry, Pars, chOut, waveform1(1:nTrain, :));
+        
 end
 
 
+% % Plot Output of Beamformer
+% figure;
+% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
+% title('Output of Beamformer');
+% xlabel('Time (s)');ylabel('Magnitude (V)');
 
-% Considering H as ideal channel (only in each subcarrier) that introduces only a phase shift
-G = [mean(G,2)];
 
-% Equalizing:
-chOut_equal = (G).*chOut_BF(:,n_training+1:end);
-chOut_equal = chOut_equal(:);
+% Plot array pattern at azimuth = 0°
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','polar','Weights',w)
+% 
+% figure;
+% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     'PropagationSpeed',Pars.c,...
+%     'Type','powerdb',...
+%     'CoordinateSystem','rectangular','Weights',w)
 
-%% QAM demodulation
 
-% No beamformer:
+
+
+ 
+%%  Channel equalization
+
+% OFDM symbol used to train
+n_training = length(arrOut);
+
+max_iter = 100;
+
+% Tap of the equalizer
+g_len = 2;
+
+g = Gradient_descent( arrOut.',  waveform1(1:n_training).', n_training, max_iter, g_len);
+
+arrOut_ = conv(g,arrOut);
+
+arrOut_equal = arrOut_(1:length(arrOut));
+
+ 
+
+%% OFDM demodulation and QAM demodulation
+
+% No beamformer without equalization:
 out = ofdmDemod1(chOut(:,1)); % first antenna
 figure;
 
@@ -363,6 +297,13 @@ x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 y = imag(out);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
+title('no BF, no equal')
+
+dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
+dataOut_beam_noequal = dataOut_beam_noequal(:);
+[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,dataOut_beam_noequal(1:end))
+
+
 
 
 % With beamformer without equalization
@@ -375,20 +316,23 @@ y = imag(out);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-dataOut_beam = qamdemod(out,M1,'OutputType','bit');
-dataOut_beam = dataOut_beam(:);
-[numErrorsG_beam,berG_beam] = biterr(bitInput1,dataOut_beam(1:end))
+dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
+dataOut_beam_noequal = dataOut_beam_noequal(:);
+[numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,dataOut_beam_noequal(1:end))
+title('si BF, no equal')
 
 
 % With beamformer with equalization
+chOut_equal= ofdmDemod1(arrOut_equal);
 figure;
 
-x = real(chOut_equal(:));
-y = imag(chOut_equal(:));
+x = real(chOut_equal);
+x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
+y = imag(chOut_equal);
+y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
 dataOut_beam = qamdemod(chOut_equal,M1,'OutputType','bit');
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
-
-
+title('si BF, si equal')

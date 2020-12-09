@@ -200,7 +200,7 @@ DoAs(:,2) = temp1;
 
 
 %% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
-Type = 4;
+Type = 3;
 
 switch Type
     

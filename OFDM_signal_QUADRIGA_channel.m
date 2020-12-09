@@ -44,7 +44,7 @@ Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
-Geometry.Nant = 32;
+Geometry.Nant = 16;
 Geometry.BSarray = phased.URA('Size', [Geometry.Nant Geometry.Nant], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'z');
 
@@ -93,7 +93,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 16;
+M1 = 4;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
@@ -238,7 +238,7 @@ for antenna=1:1:chTaps2(1)
 end
 
 
-chOut = 10*chOut1 + chOut2;
+chOut = chOut1 + chOut2;
 % chOut = chOut2;
 chOut = chOut.';
 
@@ -286,7 +286,7 @@ estimator = phased.MUSICEstimator2D( ...
 % plotSpectrum(estimator);
 
 %% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
-Type = 3;
+Type = 0;
 
 switch Type
     
@@ -350,7 +350,7 @@ n_training = length(arrOut);
 max_iter = 100;
 
 % Tap of the equalizer
-g_len = 2;
+g_len = 1;
 
 g = Gradient_descent( arrOut.',  waveform1(1:n_training).', n_training, max_iter, g_len);
 
@@ -411,3 +411,44 @@ dataOut_beam = dataOut_beam;
 dataOut_beam = dataOut_beam(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
 title('si BF, si equal')
+
+
+
+%{
+chOut = chOut1 + chOut2;
+numberBF = 1 SIMPLE, 2 NULLING, 3 MVDR, 4 LMS, 5 MMSE
+Nant = 1 4, 2 8, 3 16, 4 32
+g_len = 1 1, 2 2, 3 34
+M = 1 4, 2 16
+Bers = zeros(numberBF, Nant, g_len, M)
+Bers (1,1,1,1) = 0.2623
+Bers (1,2,1,1) = 0.0051
+Bers (1,3,1,1) = 2.4590e-04
+Bers (1,1,2,1) = 0.023
+Bers (1,1,3,1) = 0
+Bers (1,1,1,2) = 0.5
+Bers (1,3,3,1) = 0
+Bers (1,3,3,2) = 0.25
+
+Bers (2,1,1,1) = 0.0037
+Bers (2,2,1,1) = 0
+Bers (2,3,1,1) = 0
+Bers (2,1,2,1) = 0.5
+Bers (2,1,3,1) = 0.2546
+Bers (2,1,1,2) = 0.5
+Bers (2,3,3,1) = 0
+Bers (2,3,3,2) = 0.25
+
+Bers (3,3,3,1) = 0
+Bers (3,3,3,2) = 0.45
+
+Bers (4,3,1,1) = 0
+Bers (4,3,3,1) = 0.25
+Bers (4,3,1,2) = 0.25
+
+Bers (5,3,1,1) = 0
+Bers (5,4,1,1) = 0
+Bers (5,3,1,2) = 0.27
+Bers (5,4,1,2) = 0.25
+
+%}
