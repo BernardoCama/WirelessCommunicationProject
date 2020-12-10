@@ -222,13 +222,13 @@ Type = 2;
 switch Type
     
     case 0
-        [arrOut,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut);
+        [chOut_BF,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut);
 
     case 1     
-        [arrOut,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
+        [chOut_BF,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
         
     case 2       
-        [arrOut,w] = MVDR_BF(Geometry, Pars, DoAs(:,1), chOut);
+        [chOut_BF,w] = MVDR_BF(Geometry, Pars, DoAs(:,1), chOut);
         
     case 3
         % We use the first half of the received signal for the LMS algorithm, 
@@ -238,13 +238,13 @@ switch Type
         % Training sequence length:
         nTrain = round(length(chOut(:,1)) / 2);
 
-        [arrOut, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
+        [chOut_BF, w] = LMS_BF(Geometry, Pars, DoAs(:, 1), chOut, waveform1(1:nTrain, :));
     
     case 4   
         % Training sequence length:
         nTrain = round(length(chOut(:,1)) / 2);
         
-        [arrOut,w] = MMSE_BF(Geometry, Pars, chOut, waveform1(1:nTrain, :));
+        [chOut_BF,w] = MMSE_BF(Geometry, Pars, chOut, waveform1(1:nTrain, :));
         
 end
 
@@ -252,7 +252,7 @@ end
 
 % % Plot Output of Beamformer
 % figure;
-% plot([0:1/Fs1:length(abs(arrOut))/Fs1-1/Fs1],abs(arrOut)); axis tight;
+% plot([0:1/Fs1:length(abs(chOut_BF))/Fs1-1/Fs1],abs(chOut_BF)); axis tight;
 % title('Output of Beamformer');
 % xlabel('Time (s)');ylabel('Magnitude (V)');
 
@@ -277,18 +277,18 @@ end
 %%  Channel equalization
 
 % OFDM symbol used to train
-n_training = length(arrOut);
+n_training = length(chOut_BF);
 
 max_iter = 100;
 
 % Tap of the equalizer
 g_len = 2;
 
-g = Gradient_descent( arrOut.',  waveform1(1:n_training).', n_training, max_iter, g_len);
+g = Gradient_descent( chOut_BF.',  waveform1(1:n_training).', n_training, max_iter, g_len);
 
-arrOut_ = conv(g,arrOut);
+chOut_BF_ = conv(g,chOut_BF);
 
-arrOut_equal = arrOut_(1:length(arrOut));
+chOut_BF_equal = chOut_BF_(1:length(chOut_BF));
 
  
 
@@ -299,50 +299,50 @@ arrOut_equal = arrOut_(1:length(arrOut));
 %% OFDM demodulation and QAM demodulation
 
 % No beamformer without equalization:
-out = ofdmDemod1(chOut(:,1)); % first antenna
+chOut_OFDMdem = ofdmDemod1(chOut(:,1)); % first antenna
 figure;
 
-x = real(out);
+x = real(chOut_OFDMdem);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(out);
+y = imag(chOut_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
-title('no BF, no equal')
+title('Without beamforming and without equalization')
 
-dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
-dataOut_beam_noequal = dataOut_beam_noequal(:);
-[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,dataOut_beam_noequal(1:end))
+chOut_OFDMdem_QAMdem = qamdemod(chOut_OFDMdem,M1,'OutputType','bit');
+chOut_OFDMdem_QAMdem = chOut_OFDMdem_QAMdem(:);
+[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,chOut_OFDMdem_QAMdem(1:end))
 
 
 
 
 % With beamformer without equalization
-out = ofdmDemod1(arrOut);
+chOut_BF_OFDMdem = ofdmDemod1(chOut_BF);
 figure;
 
-x = real(out);
+x = real(chOut_BF_OFDMdem);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(out);
+y = imag(chOut_BF_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-dataOut_beam_noequal = qamdemod(out,M1,'OutputType','bit');
-dataOut_beam_noequal = dataOut_beam_noequal(:);
-[numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,dataOut_beam_noequal(1:end))
-title('si BF, no equal')
+chOut_BF_OFDMdem_QAMdem = qamdemod(chOut_BF_OFDMdem,M1,'OutputType','bit');
+chOut_BF_OFDMdem_QAMdem = chOut_BF_OFDMdem_QAMdem(:);
+[numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,chOut_BF_OFDMdem_QAMdem(1:end))
+title('With beamforming, without equalization')
 
 
 % With beamformer with equalization
-chOut_equal= ofdmDemod1(arrOut_equal);
+chOut_BF_equal_OFDMdem= ofdmDemod1(chOut_BF_equal);
 figure;
 
-x = real(chOut_equal);
+x = real(chOut_BF_equal_OFDMdem);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(chOut_equal);
+y = imag(chOut_BF_equal_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-dataOut_beam = qamdemod(chOut_equal,M1,'OutputType','bit');
-dataOut_beam = dataOut_beam(:);
-[numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(dataOut_beam)+1:end),dataOut_beam(1:end))
-title('si BF, si equal')
+chOut_BF_equal_OFDMdem_QAMdem = qamdemod(chOut_BF_equal_OFDMdem,M1,'OutputType','bit');
+chOut_BF_equal_OFDMdem_QAMdem = chOut_BF_equal_OFDMdem_QAMdem(:);
+[numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut_BF_equal_OFDMdem_QAMdem)+1:end),chOut_BF_equal_OFDMdem_QAMdem(1:end))
+title('With beamforming and equalization')
