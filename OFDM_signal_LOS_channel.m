@@ -84,7 +84,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 4;
+M1 = 16;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
@@ -287,7 +287,7 @@ y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 scatter(x,y);
 title('Without beamforming and without equalization')
 
-chOut_OFDMdem_QAMdem = qamdemod(chOut_OFDMdem,M1,'OutputType','bit');
+chOut_OFDMdem_QAMdem = qamdemod(chOut_OFDMdem,M1,'gray','OutputType','bit', 'UnitAveragePower', true);
 chOut_OFDMdem_QAMdem = chOut_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,chOut_OFDMdem_QAMdem(1:end))
 
@@ -304,7 +304,7 @@ y = imag(chOut_BF_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut_BF_OFDMdem_QAMdem = qamdemod(chOut_BF_OFDMdem,M1,'OutputType','bit');
+chOut_BF_OFDMdem_QAMdem = qamdemod(chOut_BF_OFDMdem,M1,'gray','OutputType', 'bit', 'UnitAveragePower', true);
 chOut_BF_OFDMdem_QAMdem = chOut_BF_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,chOut_BF_OFDMdem_QAMdem(1:end))
 title('With beamforming, without equalization')
@@ -320,7 +320,7 @@ y = imag(chOut_BF_equal_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut_BF_equal_OFDMdem_QAMdem = qamdemod(chOut_BF_equal_OFDMdem,M1,'OutputType','bit');
+chOut_BF_equal_OFDMdem_QAMdem = qamdemod(chOut_BF_equal_OFDMdem,M1,'OutputType','bit', 'UnitAveragePower', true);
 chOut_BF_equal_OFDMdem_QAMdem = chOut_BF_equal_OFDMdem_QAMdem(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut_BF_equal_OFDMdem_QAMdem)+1:end),chOut_BF_equal_OFDMdem_QAMdem(1:end))
 title('With beamforming and equalization')

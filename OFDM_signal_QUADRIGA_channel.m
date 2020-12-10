@@ -390,7 +390,7 @@ y = imag(chOut__BF_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut__BF_OFDMdem_QAMdem = qamdemod(chOut__BF_OFDMdem,M1,'OutputType','bit');
+chOut__BF_OFDMdem_QAMdem = qamdemod(chOut__BF_OFDMdem,M1,'OutputType','bit', 'UnitAveragePower', true);
 chOut__BF_OFDMdem_QAMdem = chOut__BF_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,chOut__BF_OFDMdem_QAMdem(1:end))
 title('With beamforming, without equalization')
@@ -406,7 +406,7 @@ y = imag(chOut__BF_equal_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut__BF_equal_OFDMdem_QAMdem = qamdemod(chOut__BF_equal_OFDMdem,M1,'OutputType','bit');
+chOut__BF_equal_OFDMdem_QAMdem = qamdemod(chOut__BF_equal_OFDMdem,M1,'OutputType','bit', 'UnitAveragePower', true);
 chOut__BF_equal_OFDMdem_QAMdem = chOut__BF_equal_OFDMdem_QAMdem(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut__BF_equal_OFDMdem_QAMdem)+1:end),chOut__BF_equal_OFDMdem_QAMdem(1:end))
 title('With beamforming and equalization')
