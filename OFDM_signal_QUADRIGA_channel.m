@@ -44,7 +44,7 @@ Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
-Geometry.Nant = 4;
+Geometry.Nant = 16;
 Geometry.BSarray = phased.URA('Size', [Geometry.Nant Geometry.Nant], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'z');
 
@@ -93,13 +93,13 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 4;
+M1 = 16;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
 
 % Mudulation of bit_in_1 with QAM modulator:
-dataInput1 = qammod(bitInput1, M1, 'gray', 'InputType', 'bit', 'UnitAveragePower', true);
+dataInput1 = qammod(bitInput1, M1, 'gray', 'InputType', 'bit', 'UnitAveragePower', true, 'PlotConstellation', true);
 
 % Preparing dataInput1 for OFDM modulation:
 ofdmInfo1 = info(ofdmMod1);
@@ -109,6 +109,7 @@ dataInput1 = reshape(dataInput1, ofdmSize1);
 % OFDM modulation:
 pilotInput1 = ones(1, nSymbols1, 1);
 waveform1 = ofdmMod1(dataInput1, pilotInput1);
+%waveform1 = waveform1*3;
 
 % Used by the channel to determine the delay in number of samples:
 Fs1 = 180000;
@@ -145,6 +146,7 @@ dataInput2 = reshape(dataInput2, ofdmSize2);
 % OFDM modulation:
 pilotInput2 = ones(1, nSymbols2, 1);
 waveform2 = ofdmMod2(dataInput2, pilotInput2);
+waveform2 = waveform2*1;
 
 % Used by the channel to determine the delay in number of samples:
 Fs2 = 180000; 
@@ -269,7 +271,7 @@ estimator = phased.MUSICEstimator2D( ...
     'NumSignalsSource', 'Property', ...
     'DOAOutputPort', true, ...
     'NumSignals', 2, ...
-    'AzimuthScanAngles', -90:.1:90, ...
+    'AzimuthScanAngles', -180:.5:180, ...
     'ElevationScanAngles', 0:0.5:90);
 
 % Estimation od DoA of singal in output from the channel:
@@ -282,11 +284,11 @@ estimator = phased.MUSICEstimator2D( ...
 % DoAs(:,2) = temp1;
 
 % Plotting:
-% figure();
-% plotSpectrum(estimator);
+figure();
+plotSpectrum(estimator);
 
 %% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
-Type = 1;
+Type = 3;
 
 switch Type
     
@@ -373,7 +375,7 @@ y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSy
 scatter(x,y);
 title('Without beamforming and without equalization')
 
-chOut_OFDMdem_QAMdem = qamdemod(chOut_OFDMdem,M1,'OutputType','bit');
+chOut_OFDMdem_QAMdem = qamdemod(chOut_OFDMdem,M1, 'gray','OutputType','bit');
 chOut_OFDMdem_QAMdem = chOut_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,chOut_OFDMdem_QAMdem(1:end))
 
@@ -390,7 +392,7 @@ y = imag(chOut__BF_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut__BF_OFDMdem_QAMdem = qamdemod(chOut__BF_OFDMdem,M1,'OutputType','bit', 'UnitAveragePower', true);
+chOut__BF_OFDMdem_QAMdem = qamdemod(chOut__BF_OFDMdem,M1, 'gray','OutputType','bit', 'UnitAveragePower', true);
 chOut__BF_OFDMdem_QAMdem = chOut__BF_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,chOut__BF_OFDMdem_QAMdem(1:end))
 title('With beamforming, without equalization')
@@ -406,7 +408,7 @@ y = imag(chOut__BF_equal_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut__BF_equal_OFDMdem_QAMdem = qamdemod(chOut__BF_equal_OFDMdem,M1,'OutputType','bit', 'UnitAveragePower', true);
+chOut__BF_equal_OFDMdem_QAMdem = qamdemod(chOut__BF_equal_OFDMdem,M1,'gray','OutputType','bit', 'UnitAveragePower', true);
 chOut__BF_equal_OFDMdem_QAMdem = chOut__BF_equal_OFDMdem_QAMdem(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut__BF_equal_OFDMdem_QAMdem)+1:end),chOut__BF_equal_OFDMdem_QAMdem(1:end))
 title('With beamforming and equalization')

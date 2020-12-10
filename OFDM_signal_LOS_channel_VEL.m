@@ -7,12 +7,15 @@ clc;
 %% Defining geometry and pars
 
 % CArrier frequency and wavelength
-Pars.fc = 26e9;
+Pars.fc = 2.6e9;
 Pars.c = physconst('LightSpeed');
 Pars.lambda = Pars.c / Pars.fc;
 
 % BS position (macrocell with high 25m):
 Geometry.BSPos = [0, 0, 25];
+
+% Simulation Time
+Geometry.TotTime = 12; % [s]
 
 % First veichle (V1):
 Geometry.V1PosStart = [70, -100, 1.5]; % start [m]
@@ -20,11 +23,11 @@ Geometry.V1PosEnd = [70, 100, 1.5];    % end [m]
 
 % Second veichle (V2):
 Geometry.V2PosStart = [200, -50, 1.5]; % start [m]
-Geometry.V2PosEnd = [10, -50, 1.5];    % end [m]
+Geometry.V2PosEnd = [0, -50, 1.5];    % end [m]
 
 % Velocities of veichles:
-Geometry.vel1 = [0;200;0].* 1/50; % [m/s]
-Geometry.vel2 = [-190;0;0].* 1/50; % [m/s]
+Geometry.vel1 = [0;200;0].* 1/12; % 16.67 [m/s] = 60 [km/h]
+Geometry.vel2 = [-200;0;0].* 1/12; % 16.67 [m/s] = 60 [km/h]
 
 % Coherence Time
 Geometry.fd = Pars.fc* max([sqrt(sum(Geometry.vel1.^2)) ; sqrt(sum(Geometry.vel2.^2))])/Pars.c; % [Hz]
@@ -244,25 +247,21 @@ switch Type
 end
 
 
-% % Plot Output of Beamformer
-% figure;
-% plot([0:1/Fs1:length(abs(chOut_BF))/Fs1-1/Fs1],abs(chOut_BF)); axis tight;
-% title('Output of Beamformer');
-% xlabel('Time (s)');ylabel('Magnitude (V)');
+
 
 
 % Plot array pattern at azimuth = 0°
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','polar','Weights',w)
+figure;
+pattern(Geometry.BSarray,Pars.fc,[-180:180],DoAs(2,1),...
+    'PropagationSpeed',Pars.c,...
+    'Type','powerdb',...
+    'CoordinateSystem','polar','Weights',w)
 % 
-% figure;
-% pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
-%     'PropagationSpeed',Pars.c,...
-%     'Type','powerdb',...
-%     'CoordinateSystem','rectangular','Weights',w)
+figure;
+pattern(Geometry.BSarray,Pars.fc,[-180:180],DoAs(2,1),...
+    'PropagationSpeed',Pars.c,...
+    'Type','powerdb',...
+    'CoordinateSystem','rectangular','Weights',w)
 
 
 
@@ -282,7 +281,7 @@ g = Gradient_descent( chOut_BF.',  waveform1(1:n_training).', n_training, max_it
 
 chOut_BF_ = conv(g,chOut_BF);
 
-chOut_BF_equal = arrOut_(1:length(chOut_BF));
+chOut_BF_equal = chOut_BF_(1:length(chOut_BF));
 
  
 
@@ -316,7 +315,7 @@ y = imag(chOut_BF_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut_BF_OFDMdem_QAMdem = qamdemod(chOut_BF_OFDMdem,M1,'OutputType','bit');
+chOut_BF_OFDMdem_QAMdem = qamdemod(chOut_BF_OFDMdem,M1,'gray','OutputType','bit', 'UnitAveragePower', true);
 chOut_BF_OFDMdem_QAMdem = chOut_BF_OFDMdem_QAMdem(:);
 [numErrorsG_beam_noequal,berG_beam_noequal] = biterr(bitInput1,chOut_BF_OFDMdem_QAMdem(1:end))
 title('si BF, no equal')
@@ -326,13 +325,13 @@ title('si BF, no equal')
 chOut_BF_equal_OFDMdem= ofdmDemod1(chOut_BF_equal);
 figure;
 
-x = real(chOut_equchOut_BF_equal_OFDMdemal);
+x = real(chOut_BF_equal_OFDMdem);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 y = imag(chOut_BF_equal_OFDMdem);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 
-chOut_BF_equal_OFDMdem_QAMdem = qamdemod(chOut_BF_equal_OFDMdem,M1,'OutputType','bit');
+chOut_BF_equal_OFDMdem_QAMdem = qamdemod(chOut_BF_equal_OFDMdem,M1,'gray','OutputType','bit', 'UnitAveragePower', true);
 chOut_BF_equal_OFDMdem_QAMdem = chOut_BF_equal_OFDMdem_QAMdem(:);
 [numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut_BF_equal_OFDMdem_QAMdem)+1:end),chOut_BF_equal_OFDMdem_QAMdem(1:end))
 title('si BF, si equal')
