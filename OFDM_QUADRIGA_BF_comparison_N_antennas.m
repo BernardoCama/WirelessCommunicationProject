@@ -499,21 +499,99 @@ for ant = 1 : length(Geometry.Nant)
     
 end
 
-figure;
-chOut_BF_equal_OFDMdem1 = chOut_mmse_BF_equal_OFDMdem(:, :, 1);
-x = real(chOut_BF_equal_OFDMdem1);
-x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(chOut_BF_equal_OFDMdem1);
-y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-scatter(x,y);
-
-
 %% PLOTS FOR COMPARING THE WEIGTHS OF THE ANTENNAS USING ANTENNA ARRAYS OF DIFFERENT SIZES
 
+% Preparing cells with the weigth of the antennas: one cell for antenna array containing the
+% weights of the different BF in the order: simple, null-steering, mvdr, lms, mmse.
+
+w_2x2 = {w_lms_BF(:, 1) w_nulling_BF(:, 1) w_mvdr_BF(:, 1) ...
+    w_lms_BF(:, 1) w_mmse_BF(:, 1)};
+
+w_4x4 = {w_lms_BF(:, 2) w_nulling_BF(:, 2) w_mvdr_BF(:, 2) ...
+    w_lms_BF(:, 2) w_mmse_BF(:, 2)};
+
+w_8x8 = {w_lms_BF(:, 3) w_nulling_BF(:, 3) w_mvdr_BF(:, 3) ...
+    w_lms_BF(:, 3) w_mmse_BF(:, 3)};
+
+w_16x16 = {w_lms_BF(:, 4) w_nulling_BF(:, 4) w_mvdr_BF(:, 4) ...
+    w_lms_BF(:, 4) w_mmse_BF(:, 4)};
+
+% Plot of the weigths of BFs for 2x2 antenna array
+figure();
+for i = 1 : 5
+    
+    hold on;
+    w = w_2x2{i};
+    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', w(1:2^2));
+  
+end
+grid on;
+title('Weights for different BF techniques using a 2x2 antenna array');
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+
+% Plot of the weigths of BFs for 4x4 antenna array
+figure();
+for i = 1 : 5
+    
+    hold on;
+    w = w_4x4{i};
+    pattern(Geometry.BSarray_all{2}, Pars.fc,[-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', w(1:4^2));
+  
+end
+grid on;
+title('Weights for different BF techniques using a 4x4 antenna array');
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+
+% Plot of the weigths of BFs for 8x8 antenna array
+figure();
+for i = 1 : 5
+    
+    hold on;
+    w = w_8x8{i};
+    pattern(Geometry.BSarray_all{3}, Pars.fc,[-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', w(1:8^2));
+  
+end
+grid on;
+title('Weights for different BF techniques using a 8x8 antenna array');
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+
+% Plot of the weigths of BFs for 16x16 antenna array
+figure();
+for i = 1 : 5
+    
+    hold on;
+    w = w_16x16{i};
+    pattern(Geometry.BSarray_all{4}, Pars.fc,[-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', w(1:16^2));
+  
+end
+grid on;
+title('Weights for different BF techniques using a 16x16 antenna array');
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 
 
 %% PLOTS FOR COMPARING THE DOA USING ANTENNA ARRAYS OF DIFFERENT SIZES
+% Here we present 5 plots, one for each BF techniques, in which we show the
+% precision in the detection of the DoA of each BF technique with different
+% antenna arrays.
+
+% Preparing vectors to be plotted:
 
 
 
@@ -610,7 +688,20 @@ legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 
 %% BER COMPARISON
+% Here we show the different BERs for the different kinds of BF and
+% different antenna arrays.
 
+figure();
+x = [4 16 64 256];
 
-
+for i = 1 : length(x)
+    
+    hold on;
+    y = ber(:, i);
+    plot(x, y, 'lineWidth', 3);
+    
+end
+grid on;
+title('BER for different kinds of BF');
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
