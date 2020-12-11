@@ -667,7 +667,7 @@ for i = 1 : 5
     x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
     y = imag(BF_16x16{i});
     y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-    scatter(x,y, );
+    scatter(x,y);
     
 end
 grid on;
