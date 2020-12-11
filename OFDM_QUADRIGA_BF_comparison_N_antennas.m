@@ -585,17 +585,6 @@ title('Weights for different BF techniques using a 16x16 antenna array');
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 
-
-%% PLOTS FOR COMPARING THE DOA USING ANTENNA ARRAYS OF DIFFERENT SIZES
-% Here we present 5 plots, one for each BF techniques, in which we show the
-% precision in the detection of the DoA of each BF technique with different
-% antenna arrays.
-
-% Preparing vectors to be plotted:
-
-
-
-
 %% PLOTS FOR COMPARING THE CONSTALLATIONS REVEALED BY DIFFERENT BEAMFORMERS WITH DIFFERENT NUMBER OF ANTENNAS
 % Here we plot 4 figures, one for each tested dimension of the antenna
 % array (2x2, 4x4, 8x8, 16x16).
@@ -678,7 +667,7 @@ for i = 1 : 5
     x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
     y = imag(BF_16x16{i});
     y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-    scatter(x,y);
+    scatter(x,y, );
     
 end
 grid on;
