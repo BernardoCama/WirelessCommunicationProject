@@ -93,7 +93,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 16;
+M1 = 4;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);

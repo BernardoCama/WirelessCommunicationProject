@@ -170,6 +170,7 @@ noise = chOut_noise - chOut;
 chOut = chOut_noise;
 
 
+
 %% Estimation of DoA (MUSIC algorithm)
 
 % Generation of MUSIC  DoA estimator:
