@@ -50,8 +50,8 @@ N_iter = 800;
 
 SNR = [0:10]; % input SNR
 
-N_interf = 1;
-N_interf_test=1; %use the same value as N_interf
+N_interf = 0;
+N_interf_test=0; %use the same value as N_interf
 ang_sep = 20; %Angular separation
 SNRout = zeros(5,length(SNR)); %SNR output with interference
 SNRout0 = zeros(5,length(SNR)); %SNR output without interference
@@ -132,17 +132,14 @@ if(N_interf == 0)
    end
 %Print the results
 figure();    
-plot(SNR, SNRout0(1,:),'o');
+plot(SNR, SNRout0(1,:),'-o');
 hold on;
-plot(SNR, SNRout0(2,:),'s');
-hold on;
-plot(SNR, SNRout0(3,:),'+');
-hold on;
-plot(SNR, SNRout0(4,:),'*');
-hold on;
-plot(SNR, SNRout0(5,:),'p');
+plot(SNR, SNRout0(2,:),'-s');
+plot(SNR, SNRout0(3,:),'-+');
+plot(SNR, SNRout0(4,:),'-*');
+plot(SNR, SNRout0(5,:),'-p');
 hold off;
-legend('SIMPLE','NULL-STEERING', 'MVDR', 'MMSE', 'LMS');
+legend({'SIMPLE','NULL-STEERING', 'MVDR', 'MMSE', 'LMS'},'Location','northwest');
 xlabel('SNR (Input)[dB]'); 
 ylabel('SNR (Output)[dB]');
 title('Adaaptive Beam-forming performance with interference')
@@ -242,10 +239,11 @@ if(N_interf>0)
             w_iter = zeros(Geometry.Nant,N_iter);
             SNR_iter = zeros(1,N_iter);
             SNR_iter0 = zeros(1,N_iter);
-            initial_cond = 2; % 0, 1, 2(Good)
+            %LMS INITIAL STATE
+            initial_cond = 2; % 0, 1(SIMPLE BF initial state), 2(Good)
             if (initial_cond == 0)
                 init_ang = -pi/2 + pi*rand;
-                [s_corr]=steervector(init_ang,Geometry.Nant,RB.lambda*0.5,RB.f);
+                [s_corr]=steervector(init_ang,Geometry.Nant,Pars.lambda*0.5,Pars.fc);
                 w_iter(:,1) = s_corr.';
             elseif (initial_cond == 1)
                 w_iter(:,1) = init.s;
@@ -283,43 +281,40 @@ if(N_interf>0)
     %Print the results
 
     figure();    
-    plot(SNR, SNRout(1,:),'o');
+    plot(SNR, SNRout(1,:),'-o');
     hold on;
-    plot(SNR, SNRout(2,:),'s');
-    hold on;
-    plot(SNR, SNRout(3,:),'+');
-    hold on;
-    plot(SNR, SNRout(4,:),'*');
-    hold on;
-    plot(SNR, SNRout(5,:),'p');
+    plot(SNR, SNRout(2,:),'-s');
+    plot(SNR, SNRout(3,:),'-+');
+    plot(SNR, SNRout(4,:),'-*');
+    plot(SNR, SNRout(5,:),'-p');
     hold off;
-    legend('SIMPLE','NULL-STEERING', 'MVDR', 'MMSE', 'LMS');
+    legend({'SIMPLE','NULL-STEERING', 'MVDR', 'MMSE', 'LMS'},'Location','northwest');
     xlabel('SNR (Input)[dB]'); 
     ylabel('SNR (Output)[dB]'); 
     title('Adaaptive Beam-forming performance with interference');
 
     %Plot AF -->FIX NEEDED
-    if (N_interf == 1)
-    % teta_corr = -pi/2:pi/512:pi/2;
-    % [vc]=steervector(Geometry.tetadir,Geometry.Nant,Pars.lambda*0.5,Pars.fc);
-    % AF_simple = w_simple(length(Geometry.Nant),:)*vc.';
-    % AF_null=w_null(length(Geometry.Nant),:)*vc.';
-    % AF_MMSE=w_mmse(length(Geometry.Nant),:)*vc.';
-    % AF_LMS=w_lms(length(Geometry.Nant),:)*vc.';
-    % 
-    % % figure();
-    % plot(Geometry.tetadir*180/pi,10*log10(abs(AF_simple)));
-    % hold on;
-    % plot(Geometry.tetadir*180/pi,10*log10(abs(AF_null)));
-    % hold on;
-    % plot(Geometry.tetadir*180/pi,10*log10(abs(AF_MMSE)));
-    % hold on;
-    % plot(Geometry.tetadir*180/pi,10*log10(abs(AF_LMS)));
-    % hold off;
-    % 
-    % xlabel('\theta');
-    % ylabel('AF [dB]');
-    end
+%     if (N_interf == 1)
+%     teta_corr = -pi/2:pi/512:pi/2;
+%     [vc]=steervector(Geometry.tetadir,Geometry.Nant,Pars.lambda*0.5,Pars.fc);
+%     AF_simple = w_simple(length(Geometry.Nant),:)*vc.';
+%     AF_null=w_null(length(Geometry.Nant),:)*vc.';
+%     AF_MMSE=w_mmse(length(Geometry.Nant),:)*vc.';
+%     AF_LMS=w_lms(length(Geometry.Nant),:)*vc.';
+%     
+%     % figure();
+%     plot(Geometry.tetadir*180/pi,10*log10(abs(AF_simple)));
+%     hold on;
+%     plot(Geometry.tetadir*180/pi,10*log10(abs(AF_null)));
+%     hold on;
+%     plot(Geometry.tetadir*180/pi,10*log10(abs(AF_MMSE)));
+%     hold on;
+%     plot(Geometry.tetadir*180/pi,10*log10(abs(AF_LMS)));
+%     hold off;
+%     
+%     xlabel('\theta');
+%     ylabel('AF [dB]');
+%     end
 end
 
 
