@@ -683,11 +683,11 @@ legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 figure();
 x = [4 16 64 256];
 
-for i = 1 : length(x)
+for i = 1 : 5
     
     hold on;
     y = ber(:, i);
-    plot(x, y, 'lineWidth', 3);
+    plot(x, y, 'lineWidth', 2);
     
 end
 grid on;
