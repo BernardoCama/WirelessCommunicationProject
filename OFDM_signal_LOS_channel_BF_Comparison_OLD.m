@@ -84,7 +84,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 4;
+M1 = 16;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
@@ -151,29 +151,43 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 %% LoS Channel 
 % Generation of LoS channel:
-    w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
-    w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
-    
-    % Velocities of veichles:
-    vel1 = [0;0;0];
-    vel2 = [0;0;0];
+w1 = LOS(waveform1, Geometry.V1PosStart, Geometry.BSPos, Pars);
+w2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
 
-    % Calucation of received wavefrom1 (attention to dimension of waveforms):
-    chOut_no_noise = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
+% Velocities of veichles:
+vel1 = [0;0;0];
+vel2 = [0;0;0];
+
+
+% Calucation of received wavefrom1 (attention to dimension of waveforms):
+chOut_no_noise = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
-for i = 1:11 
-    SNR(i) = i+9; % in dB
+
+    
+ 
+for i = 1:2
+    SNR(i) = i; % in dB
     % Adding AWGN noise to waveform: 
-    chOut_noise = awgn(chOut_no_noise, 0, 'measured');
-    %noise = chOut_noise - chOut_no_noise;
-    noise=10*log10(sum(abs(fft(chOut_noise(:,1))).^2)/sum(abs(fft(chOut_no_noise(:,1))).^2));
-    chOut= chOut_noise;
+    chOut_noise = awgn(chOut_no_noise,  0, 'measured');
+    
+    noise = chOut_noise - chOut_no_noise;
+    
+    10*log10(sum(abs(fft(chOut_no_noise)).^2)/sum(abs(fft(noise)).^2))   
+    
+    
+%     noise1 = chOut_noise - chOut_no_noise ;
+%     SNR = 10*log10(sum(abs(fft(chOut)).^2)/sum(abs(fft(noise1)).^2))
+%     
+%     
+%     
+%     noise2=10*log10(sum(abs(fft(chOut_noise(:,1))).^2)/sum(abs(fft(chOut_no_noise(:,1))).^2));
+%     chOut= chOut_noise;
     
    
     %SNR_IN(i)=(rms(chOut(:,1))/rms(noise(:,1)))^2;
-    %SNR_IN(i)=abs(mean(chOut.^2))/abs(mean(noise.^2));
-    SNR_IN(i)=(sum(abs(fft(chOut)).^2)/sum(abs(fft(noise)).^2));
-    SNR_IN_dB(i)=floor(10*log10(SNR_IN(i)));
+%     %SNR_IN(i)=abs(mean(chOut.^2))/abs(mean(noise.^2));
+%     SNR_IN(i)=(sum(abs(fft(chOut)).^2)/sum(abs(fft(noise)).^2));
+%     SNR_IN_dB(i)=floor(10*log10(SNR_IN(i)));
     
 %% Estimation of DoA (MUSIC algorithm)
 
