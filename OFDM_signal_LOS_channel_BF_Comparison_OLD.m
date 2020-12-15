@@ -84,7 +84,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 16;
+M1 = 4;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
@@ -160,34 +160,21 @@ vel2 = [0;0;0];
 
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
-chOut_no_noise = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
+chOut_no_noise = collectPlaneWave(Geometry.BSarray, [w1 w2*0], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
 
     
  
 for i = 1:2
-    SNR(i) = i; % in dB
+    SNR(i) = i-1; % in dB
     % Adding AWGN noise to waveform: 
-    chOut_noise = awgn(chOut_no_noise,  0, 'measured');
+    chOut_noise = awgn(chOut_no_noise,  SNR(i), 'measured');
     
     noise = chOut_noise - chOut_no_noise;
+    chOut=chOut_noise;
     
-    10*log10(sum(abs(fft(chOut_no_noise)).^2)/sum(abs(fft(noise)).^2))   
-    
-    
-%     noise1 = chOut_noise - chOut_no_noise ;
-%     SNR = 10*log10(sum(abs(fft(chOut)).^2)/sum(abs(fft(noise1)).^2))
-%     
-%     
-%     
-%     noise2=10*log10(sum(abs(fft(chOut_noise(:,1))).^2)/sum(abs(fft(chOut_no_noise(:,1))).^2));
-%     chOut= chOut_noise;
-    
-   
-    %SNR_IN(i)=(rms(chOut(:,1))/rms(noise(:,1)))^2;
-%     %SNR_IN(i)=abs(mean(chOut.^2))/abs(mean(noise.^2));
-%     SNR_IN(i)=(sum(abs(fft(chOut)).^2)/sum(abs(fft(noise)).^2));
-%     SNR_IN_dB(i)=floor(10*log10(SNR_IN(i)));
+    SNR_IN(i)=10*log10(sum(abs(fft(chOut_no_noise)).^2)/sum(abs(fft(noise)).^2));   
+
     
 %% Estimation of DoA (MUSIC algorithm)
 
@@ -221,15 +208,14 @@ DoAs(:,2) = temp1;
 %% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
     for j=1:5
             
-        k=j-1;
+        k=0;
 
         switch k
 
             case 0
                 [chOut_BF,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut);
-                [chOut_no,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut_no_noise);
-                noise=chOut_BF-chOut_no;
-                [int_BF,w] = Conventional_BF(Geometry, Pars, DoAs(:,1), int);
+                %[chOut_BF_no_noise,w_nn] = Conventional_BF(Geometry, Pars, DoAs(:,1), chOut_no_noise);
+
             case 1     
                 [chOut_BF,w] = Nullsteering_BF(Geometry, Pars, DoAs, chOut);
 
@@ -253,12 +239,12 @@ DoAs(:,2) = temp1;
                 [chOut_BF,w] = MMSE_BF(Geometry, Pars, chOut, waveform1(1:nTrain, :));
                 
         end
-    SNR_OUT(i,j)=(sum(abs(fft(chOut_BF)).^2)/(sum(abs(fft(noise(:))).^2)+(sum(abs(fft(int_BF)).^2))));
-    SNR_OUT_dB(i,j)=10*log10(SNR_OUT(i,j));        
+    SNR_OUT_dB(i,j)=10*log10(sum(abs(fft(chOut_BF)).^2)/sum(abs(fft(chOut(:,1))).^2)); 
+    SNR_OUT_dB(i,j)=SNR(i)+SNR_OUT_dB(i,j);
     %SNR_OUT(i,j)=(rms(chOut_BF)/rms(noise(:)))^2;
     %SNR_OUT_dB(i,j)=10*log10(SNR_OUT(i,j));  
     end
 end
-
+plot(SNR, SNR_OUT_dB(:,1))
 %% Plot the results
 
