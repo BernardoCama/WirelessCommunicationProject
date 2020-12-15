@@ -503,7 +503,6 @@ end
 
 % Preparing cells with the weigth of the antennas: one cell for antenna array containing the
 % weights of the different BF in the order: simple, null-steering, mvdr, lms, mmse.
-
 w_2x2 = {w_lms_BF(:, 1) w_nulling_BF(:, 1) w_mvdr_BF(:, 1) ...
     w_lms_BF(:, 1) w_mmse_BF(:, 1)};
 
@@ -515,6 +514,84 @@ w_8x8 = {w_lms_BF(:, 3) w_nulling_BF(:, 3) w_mvdr_BF(:, 3) ...
 
 w_16x16 = {w_lms_BF(:, 4) w_nulling_BF(:, 4) w_mvdr_BF(:, 4) ...
     w_lms_BF(:, 4) w_mmse_BF(:, 4)};
+
+% Here, we create a video in which we show the weigths of the different
+% kinds of BF techiques using differentantenna array configurations
+
+% Createing a videowriter object for a new video file:
+v = VideoWriter('Antenna_patterns.avi');
+v.FrameRate = 1;
+open(v);
+
+% Creating video:
+for bf = 1 : 5
+    
+    % Creating video:
+    frame = figure();
+    setappdata(gcf, 'SubplotDefaultAxesLocation', [0, 0, 1, 1]);
+    set(gcf, 'WindowState', 'Maximized');
+    pause(1);
+
+    Rect = [0.02, 0.02, 0.95, 0.9];
+    AxisPos = myPlotPos(2, 2, Rect);
+    
+    % plot1 = subplot(2,2,1) -> BF with 2x2 antenna array.
+    W_2x2 = w_2x2{bf};
+    axes('Position', AxisPos(1, :));
+    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', W_2x2(1:2^2));
+    %title('Weigths of the 2x2 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 2x2 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    % plot2 = subplot(2,2,2) -> BF with 4x4 antenna array.
+    W_4x4 = w_4x4{bf};
+    axes('Position', AxisPos(2, :));
+    pattern(Geometry.BSarray_all{2}, Pars.fc, [-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', W_4x4(1:4^2));
+    %title('Weigths of the antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 4x4 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    % plot3 = subplot(2,2,3) -> BF with 8x8 antenna array.
+    W_8x8 = w_8x8{bf};
+    axes('Position', AxisPos(3, :));
+    pattern(Geometry.BSarray_all{3}, Pars.fc, [-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', W_8x8(1:8^2));
+    %title('Weigths of the 8x8 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 18x8 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);  
+    
+    % plot4 = subplot(2,2,4) -> BF with 16x16 antenna array.
+    W_16x16 = w_4x4{bf};
+    axes('Position', AxisPos(4, :));
+    pattern(Geometry.BSarray_all{4}, Pars.fc, [-180:180], 0, ...
+        'PropagationSpeed', Pars.c, ...
+        'Type', 'powerdb', ...
+        'CoordinateSystem', 'rectangular', ...
+        'Weights', W_16x16(1:16^2));
+    %title('Weigths of the 16x16 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 16x16 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    F = getframe(frame);
+    writeVideo(v, F);
+    writeVideo(v, F);
+    pause(5)
+    close all;
+    
+end
+close(v);
+
 
 % Opening figure for plotting the weigths as images:
 figure();
@@ -589,10 +666,8 @@ legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 
 %% PLOTS FOR COMPARING THE CONSTALLATIONS REVEALED BY DIFFERENT BEAMFORMERS WITH DIFFERENT NUMBER OF ANTENNAS
-% Here we plot 4 figures, one for each tested dimension of the antenna
-% array (2x2, 4x4, 8x8, 16x16).
-% Each figure contains the constellation revealed after the BF and
-% equalization of the 5 BF used.
+% Here we prepare a movie showing the constellations revealed by the
+% different antenna arrays and different beamformers.
 
 % First, we prepare 4 cell (one for each antenna array used) each one containing
 % the costellation of the BFs used in the order: 
@@ -612,6 +687,95 @@ BF_8x8 = {chOut_simple_BF_equal_OFDMdem(:, :, 3) chOut_nulling_BF_equal_OFDMdem(
 BF_16x16 = {chOut_simple_BF_equal_OFDMdem(:, :, 4) chOut_nulling_BF_equal_OFDMdem(:, :, 4)...
     chOut_mvdr_BF_equal_OFDMdem(:, :, 4) chOut_lms_BF_equal_OFDMdem(:, :, 4)...
     chOut_mmse_BF_equal_OFDMdem(:, :, 4)};
+
+% Createing a videowriter object for a new video file:
+v = VideoWriter('Contellations.avi');
+v.FrameRate = 1;
+open(v);
+
+% Loop for writing video:
+for bf = 1 : 5
+    
+    % The current BF:
+    switch bf
+        case bf == 1
+            bf_name = 'SIMPLE BF';
+        case bf == 2
+            bf_name = 'NULL-STEERING BF';
+        case bf == 3
+            bf_name = 'MVDR BF';
+        case bf == 4
+            bf_name = 'LMS BF';
+        case bf == 5
+            bf_name = 'MMSE BF';
+    end
+    
+    % Creating video:
+    frame = figure();
+    setappdata(gcf, 'SubplotDefaultAxesLocation', [0, 0, 1, 1]);
+    set(gcf, 'WindowState', 'Maximized');
+    pause(1);
+
+    Rect = [0.02, 0.02, 0.95, 0.9];
+    AxisPos = myPlotPos(2, 2, Rect);
+    
+    % plot1 = subplot(2,2,1) -> BF with 2x2 antenna array.
+    bf_2x2 = BF_2x2{bf};
+    axes('Position', AxisPos(1, :));
+    x = real(bf_2x2);
+    x = reshape(x, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    y = imag(bf_2x2);
+    y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    scatter(x, y);
+    title('Contellation revealed by 2x2 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 2x2 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    % plot2 = subplot(2,2,2) -> BF with 4x4 antenna array.
+    bf_4x4 = BF_4x4{bf};
+    axes('Position', AxisPos(2, :));
+    x = real(bf_4x4);
+    x = reshape(x, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    y = imag(bf_4x4);
+    y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    scatter(x, y);
+    title('Contellation revealed by 4x4 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 4x4 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    % plot3 = subplot(2,2,3) -> BF with 8x8 antenna array.
+    bf_8x8 = BF_8x8{bf};
+    axes('Position', AxisPos(3, :));
+    x = real(bf_8x8);
+    x = reshape(x, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    y = imag(bf_8x8);
+    y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
+    scatter(x, y);
+    title('Contellation revealed by 8x8 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 18x8 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);  
+    
+    % plot4 = subplot(2,2,4) -> BF with 16x16 antenna array.
+    bf_16x16 = BF_4x4{bf};
+    axes('Position', AxisPos(4, :));
+    x = real(bf_16x16);
+    x = reshape(x, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
+    y = imag(bf_16x16);
+    y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
+    scatter(x, y);
+    title('Contellation revealed by 16x16 antenna array', 'FontSize', 18);
+    %fig_title = sprintf('Contellation revealed by 16x16 antenna array - %s', bf_name);
+    %title(fig_title, 'FontSize', 18);
+    
+    F = getframe(frame);
+    writeVideo(v, F);
+    writeVideo(v, F);
+    pause(5)
+    close all;
+    
+end
+close(v);
+
 
 % Here we plot 4 figures, one for each tested dimension of the antenna
 % array (2x2, 4x4, 8x8, 16x16).
@@ -703,4 +867,3 @@ end
 grid on;
 title('BER for different kinds of BF');
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
-
