@@ -1,79 +1,20 @@
-function [v,tau,phi]=steervector(teta,L,prm,f0,Fdir,tetadir)
-%
-% [v,tau,phi]=steervector(teta,L,prm,f0,Fdir,tetadir)
-%
-% teta = DOA
-% L = # elements
-% prm = [d1,d2,...] = distances among elements
-% f0 = frequency
-% Fdir,tetadir = directivity
-%       
-% Angle and array convention: 
-%
-%                                          teta(-pi/2,+pi/2)
-%                                          | /
-%                                          |/
-%                                  o---------------o
-%                                  2       |       1 (reference phase of element 1 = 0) 
-%
+function s = steervector(Geometry, Pars, doas)
 
-if (nargin==3)
-   f0=0;
-   Fdir=[];
-   tetadir=[];
-end
-if (nargin==4)
-   Fdir=[];
-   tetadir=[];
-end
-if (nargin==5)
-   Fdir=[];
-   tetadir=[];
+Beta = 2*pi/Pars.lambda;
+
+ar = [sin(doas(2))*cos(doas(1)) sin(doas(2))*sin(doas(1)) cos(doas(2))];
+ar = normalize(ar);
+
+r = zeros(3,Geometry.Nant^2);
+
+for ant = 1:Geometry.Nant^2
+    
+    r(:,ant) = [Geometry.BSPos(1)+Geometry.BSAntennaPos(1,ant) Geometry.BSPos(2)+Geometry.BSAntennaPos(2,ant) Geometry.BSPos(3)+Geometry.BSAntennaPos(3,ant)];
+    r(:,ant) = normalize(r(:,ant));
+    s(ant) = exp(1i*ar*r(:,ant));
 end
 
+s = s.';
 
-c=3e8; %m
-if (f0==0)
-    f0=c;
+
 end
-lambda=c/f0;
-
-v=[];
-tau=[];
-phi=[];
-
-if (L>1)
-   %
-   if (length(prm)<(L-1))
-      d=prm(1)*ones(1,L-1);
-   else
-      d=prm;
-   end
-   for k=1:length(teta)
-      %
-      phi=2*pi*(cumsum(d)/lambda)*sin(teta(k));
-      phi=[0,phi];
-      %
-      if isempty(Fdir);
-         sqdsa=1;
-      else
-         sqdsa=sqrt(interpcirc(tetadir,Fdir,teta(k)));
-      end
-      %
-      v=[v;sqdsa*exp(1i*phi)];
-      tau=[tau;phi/(2*pi*f0)];
-      %
-   end
-else
-   for k=1:length(teta)
-      %
-      if isempty(Fdir);
-         sqdsa=1;
-      else
-         sqdsa=sqrt(interpcirc(tetadir,Fdir,teta(k)));
-      end
-      v=[v;sqdsa];
-      tau=[tau;0];
-   end
-end
-

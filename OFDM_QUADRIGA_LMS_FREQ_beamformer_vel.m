@@ -9,6 +9,11 @@ clear all;
 close all;
 clc;
 
+set(0,'DefaultTextFontSize',18)
+set(0,'DefaultLineLineWidth',2);
+%set(0,'DefaultTextInterpreter','latex')
+set(0,'DefaultAxesFontSize',16)
+
 %% Defining geometry and pars
 
 % CArrier frequency and wavelength
@@ -114,23 +119,47 @@ CyclicPrefixLength  = [4];
     
 %% DEFINITION OF OUTPUTS TO BE COMPARED
 
-% Detected direction of arrivals of the first vehicle (only one that can be correctly detected in this case):
+% Detected direction of arrivals:
 DoAs_tot = zeros(Geometry.N_Pack, Geometry.N_vehicle, 2);
 
-% BER of the system
-ber_tot = ones(Geometry.N_Pack,1);
+% Error of Music estimator on azimuth angle
+DoAs_error = zeros(Geometry.N_Pack, Geometry.N_vehicle, 2);
 
-% Signals OFDM-demodulated
-chOut_OFDMdem_tot = zeros( Geometry.N_Pack ,Geometry.Nant^2 , (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+% Real DoAs
+DoAs_tot_eff = zeros(Geometry.N_Pack, Geometry.N_vehicle, 2);
 
-% Signals OFDM-demodulated and squeezed
-chOut_OFDMdem_1_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
 
-% Signals OFDM-demodulated after BF but without equalization:
-chOut_OFDMdem_BF_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+% BER of vehicle1
+ber_tot_v1 = ones(Geometry.N_Pack,1);
+% BER of vehicle2
+ber_tot_v2 = ones(Geometry.N_Pack,1);
 
-% Signals OFDM-demodulated after BF but with equalization:
-chOut_OFDMdem_BF_equal_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated of vehicle1
+chOut_OFDMdem_v1_tot = zeros( Geometry.N_Pack ,Geometry.Nant^2 , (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated and squeezed of vehicle1 from antenna 1
+chOut_OFDMdem_v1_1_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated after BF but without equalization of vehicle1:
+chOut_OFDMdem_v1_BF_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated after BF but with equalization of vehicle1:
+chOut_OFDMdem_v1_BF_equal_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+
+% Signals OFDM-demodulated of vehicle2
+chOut_OFDMdem_v2_tot = zeros( Geometry.N_Pack ,Geometry.Nant^2 , (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated and squeezed of vehicle2 from antenna 1
+chOut_OFDMdem_v2_1_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated after BF but without equalization of vehicle2:
+chOut_OFDMdem_v2_BF_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
+% Signals OFDM-demodulated after BF but with equalization of vehicle2:
+chOut_OFDMdem_v2_BF_equal_tot = zeros( Geometry.N_Pack, (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+
 
 
 
@@ -140,8 +169,23 @@ for n=1:Geometry.N_Pack
 % Adjust position of target
 Geometry.V1PosStart = [Geometry.V1Positions(:,n)]';
 Geometry.V2PosStart = [Geometry.V2Positions(:,n)]';
- 
-    
+
+% Updated DoA = [AoA ZoA] (ZoA = 90 - elevation angle) for the two vehicles:
+Geometry.AOAV1Start = AoA(Geometry.BSPos, Geometry.V1PosStart);
+Geometry.ZOAV1Start = ZoA(Geometry.BSPos, Geometry.V1PosStart);
+Geometry.DOAV1Start = [Geometry.AOAV1Start Geometry.ZOAV1Start]; % DoA of V1
+
+Geometry.AOAV2Start = AoA(Geometry.BSPos, Geometry.V2PosStart);
+Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
+Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2 
+   
+Geometry.DOAV1Start(1) = wrapTo180(Geometry.DOAV1Start(1) -180);
+Geometry.DOAV2Start(1) = wrapTo180(Geometry.DOAV2Start(1) -180);
+Geometry.DOAV1Start(2) = 90 - Geometry.DOAV1Start(2);
+Geometry.DOAV2Start(2) = 90 - Geometry.DOAV2Start(2);
+
+DoAs_tot_eff(n, :, :) = [Geometry.DOAV1Start'  Geometry.DOAV2Start'];
+
 %% Generation of ODFM modulators and demodulators, M-QAM modulators and waveforms
 
 % First OFDM modulator:
@@ -250,8 +294,9 @@ l.rx_position = Geometry.BSPos';
 
 
 % Visualize model
-channel = l.visualize();
+%channel = l.visualize();
 %title('Scenario')
+channel = PlotScenario(Geometry);
 saveas(channel,sprintf('Quadriga%d.png',n))
 
 
@@ -321,117 +366,197 @@ estimator = phased.MUSICEstimator2D( ...
 
 % Estimation od DoA of singal in output from the channel:
 [~, DoAs] = estimator(chOut);
-DoAs_tot(n,:,:) = DoAs;
+if n == 1
+    DoAs_tot(n,:,:) = DoAs_tot_eff(n,:,:);
+else
+    % Compare with DoAs of previous estimation and assign DoAs to correct
+    % vehicles
+    N_positions = 2;
+    DoAs = reorderDoAs(squeeze(DoAs_tot_eff(n-1,:,:)), DoAs, N_positions);
+    DoAs_tot(n,:,:) = DoAs;
+end
+
+% Using real angles
+DoAs = squeeze(DoAs_tot_eff(n,:,:));
 
 % Plotting and Saving images:
 fig = plotSpectrum(estimator);
 saveas(fig,sprintf('DOAs%d.png',n))
 
+% Compute error of Music estimator
+DoAs_error(n,:,:) = DoAs_tot(n,:,:) - DoAs_tot_eff(n,:,:);
 
 
 
 %% OFDM demodulation and LMS Beamforming in Frequency
 % Signal after fft
-chOut_OFDMdem = zeros( Geometry.Nant^2 , (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+chOut_OFDMdem_v1 = zeros( Geometry.Nant^2 , (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))),  nSymbols1);
+chOut_OFDMdem_v2 = zeros( Geometry.Nant^2 , (nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers))),  nSymbols2);
+
 
 % Demodulation the Signal from each Antenna
 for ant = 1: size(chOut,2)
     
-    chOut_OFDMdem(ant,:,:) = ofdmDemod1(chOut(:,ant));
+    chOut_OFDMdem_v1(ant,:,:) = ofdmDemod1(chOut(:,ant));
 
 end
-chOut_OFDMdem_tot(n,:,:,:) = chOut_OFDMdem;
+% chOut_OFDMdem_v1_tot(n,:,:,:) = chOut_OFDMdem_v1;
+for ant = 1: size(chOut,2)
+    
+    chOut_OFDMdem_v2(ant,:,:) = ofdmDemod2(chOut(:,ant));
+
+end
+% chOut_OFDMdem_v2_tot(n,:,:,:) = chOut_OFDMdem_v2;
+
 
 % Signal after fft and Beamforming
-chOut_OFDMdem_BF = zeros (size(chOut_OFDMdem,2), size(chOut_OFDMdem,3));
+chOut_OFDMdem_v1_BF = zeros (size(chOut_OFDMdem_v1,2), size(chOut_OFDMdem_v1,3));
+chOut_OFDMdem_v2_BF = zeros (size(chOut_OFDMdem_v2,2), size(chOut_OFDMdem_v2,3));
+
 
 % Weights for each Antenna at each Sub-Carrier
-w = zeros (size(chOut_OFDMdem,2), size(chOut_OFDMdem,1));
+w_v1 = zeros (size(chOut_OFDMdem_v1,2), size(chOut_OFDMdem_v1,1));
+w_v2 = zeros (size(chOut_OFDMdem_v2,2), size(chOut_OFDMdem_v2,1));
+
 
 % Apply Beamforming to each Sub-Carrier
-for sc = 1: size(chOut_OFDMdem,2)
+for sc = 1: size(chOut_OFDMdem_v1,2)
 
-        nTrain = round(size(chOut_OFDMdem,3) / 2);
+        nTrain = round(size(chOut_OFDMdem_v1,3) / 2);
 
-        [chOut_OFDMdem_BF(sc,:), w(sc,:)] = LMS_BF(Geometry, Pars, DoAs(:, 1), squeeze(chOut_OFDMdem(:,sc,:)).', dataInput1(sc, 1:nTrain).');
+        [chOut_OFDMdem_v1_BF(sc,:), w_v1(sc,:)] = LMS_BF(Geometry, Pars, DoAs(:, 1), squeeze(chOut_OFDMdem_v1(:,sc,:)).', dataInput1(sc, 1:nTrain).');
     
 end
-chOut_OFDMdem_BF_tot(n,:,:) = chOut_OFDMdem_BF;
+% chOut_OFDMdem_v1_BF_tot(n,:,:) = chOut_OFDMdem_v1_BF;
+for sc = 1: size(chOut_OFDMdem_v2,2)
 
+        nTrain = round(size(chOut_OFDMdem_v2,3) / 2);
+
+        [chOut_OFDMdem_v2_BF(sc,:), w_v2(sc,:)] = LMS_BF(Geometry, Pars, DoAs(:, 2), squeeze(chOut_OFDMdem_v2(:,sc,:)).', dataInput2(sc, 1:nTrain).');
+    
+end
+% chOut_OFDMdem_v2_BF_tot(n,:,:) = chOut_OFDMdem_v2_BF;
 
 
 %%  Channel equalization
-n_training = size(chOut_OFDMdem_BF,2);
+n_training_v1 = size(chOut_OFDMdem_v1_BF,2);
+n_training_v2 = size(chOut_OFDMdem_v2_BF,2);
     
 max_iter = 100;
 
 % Tap of the equalizer
 g_len = 2;
 
-chOut_OFDMdem_BF_equal = zeros (size(chOut_OFDMdem_BF));
+chOut_OFDMdem_v1_BF_equal = zeros (size(chOut_OFDMdem_v1_BF));
+chOut_OFDMdem_v2_BF_equal = zeros (size(chOut_OFDMdem_v2_BF));
 
 % Apply Gradient-Descent algorithm to each Sub-Carrier
-for sc = 1: size(chOut_OFDMdem,2)
+for sc = 1: size(chOut_OFDMdem_v1,2)
     
-    g = Gradient_descent( chOut_OFDMdem_BF(sc,:),  dataInput1(sc,1:n_training), n_training, max_iter, g_len);
+    g = Gradient_descent( chOut_OFDMdem_v1_BF(sc,:),  dataInput1(sc,1:n_training_v1), n_training_v1, max_iter, g_len);
 
-    chOut_OFDMdem_BF_ = conv(g,chOut_OFDMdem_BF(sc,:));
+    chOut_OFDMdem_v1_BF_ = conv(g,chOut_OFDMdem_v1_BF(sc,:));
 
-    chOut_OFDMdem_BF_equal(sc,:) = chOut_OFDMdem_BF_(1:length(chOut_OFDMdem_BF(sc,:)));
+    chOut_OFDMdem_v1_BF_equal(sc,:) = chOut_OFDMdem_v1_BF_(1:length(chOut_OFDMdem_v1_BF(sc,:)));
 
 end
-chOut_OFDMdem_BF_equal_tot(n,:,:) = chOut_OFDMdem_BF_equal;
+chOut_OFDMdem_v1_BF_equal_tot(n,:,:) = chOut_OFDMdem_v1_BF_equal;
+for sc = 1: size(chOut_OFDMdem_v2,2)
+    
+    g = Gradient_descent( chOut_OFDMdem_v2_BF(sc,:),  dataInput2(sc,1:n_training_v2), n_training_v2, max_iter, g_len);
 
+    chOut_OFDMdem_v2_BF_ = conv(g,chOut_OFDMdem_v2_BF(sc,:));
+
+    chOut_OFDMdem_v2_BF_equal(sc,:) = chOut_OFDMdem_v2_BF_(1:length(chOut_OFDMdem_v2_BF(sc,:)));
+
+end
+chOut_OFDMdem_v2_BF_equal_tot(n,:,:) = chOut_OFDMdem_v2_BF_equal;
 
 
 %% QAM demodulation
 
-% No beamformer without equalization:
-chOut_OFDMdem_1 = squeeze(chOut_OFDMdem(1,:,:)); % first antenna
-chOut_OFDMdem_1_tot(n,:,:) = chOut_OFDMdem_1;
+% No beamformer without equalization v1:
+chOut_OFDMdem_v1_1 = squeeze(chOut_OFDMdem_v1(1,:,:)); % first antenna
+chOut_OFDMdem_v1_1_tot(n,:,:) = chOut_OFDMdem_v1_1;
 figure;
 
-x = real(chOut_OFDMdem_1);
+x = real(chOut_OFDMdem_v1_1);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(chOut_OFDMdem_1);
+y = imag(chOut_OFDMdem_v1_1);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
 scatter(x,y);
 title('Without beamforming, without equalization')
 
-chOut_OFDMdem_1_QAMdem = qamdemod(chOut_OFDMdem_1,M1,'OutputType','bit', 'UnitAveragePower', true);
-chOut_OFDMdem_1_QAMdem = chOut_OFDMdem_1_QAMdem(:);
-[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,chOut_OFDMdem_1_QAMdem(1:end))
+chOut_OFDMdem_v1_1_QAMdem = qamdemod(chOut_OFDMdem_v1_1,M1,'OutputType','bit', 'UnitAveragePower', true);
+chOut_OFDMdem_v1_1_QAMdem = chOut_OFDMdem_v1_1_QAMdem(:);
+[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput1,chOut_OFDMdem_v1_1_QAMdem(1:end))
 
+
+% No beamformer without equalization v2:
+chOut_OFDMdem_v2_1 = squeeze(chOut_OFDMdem_v2(1,:,:)); % first antenna
+chOut_OFDMdem_v2_1_tot(n,:,:) = chOut_OFDMdem_v2_1;
+figure;
+
+x = real(chOut_OFDMdem_v2_1);
+x = reshape(x,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]);
+y = imag(chOut_OFDMdem_v2_1);
+y = reshape(y,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]);
+scatter(x,y);
+title('Without beamforming, without equalization')
+
+chOut_OFDMdem_v2_1_QAMdem = qamdemod(chOut_OFDMdem_v2_1,M2,'OutputType','bit', 'UnitAveragePower', true);
+chOut_OFDMdem_v2_1_QAMdem = chOut_OFDMdem_v2_1_QAMdem(:);
+[numErrorsG_beam_noequal_nobeam,berG_beam_noequal_nobeam] = biterr(bitInput2,chOut_OFDMdem_v2_1_QAMdem(1:end))
 
  
 
-% With beamformer with equalization
+% With beamformer with equalization v1:
 figure;
 
-x = real(chOut_OFDMdem_BF_equal);
+x = real(chOut_OFDMdem_v1_BF_equal);
 x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-y = imag(chOut_OFDMdem_BF_equal);
+y = imag(chOut_OFDMdem_v1_BF_equal);
 y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]); 
 scatter(x,y);
 title('With beamforming and equalization')
 
-chOut_OFDMdem_BF_equal_QAMdem = qamdemod(chOut_OFDMdem_BF_equal,M1,'OutputType','bit', 'UnitAveragePower', true);
-chOut_OFDMdem_BF_equal_QAMdem = chOut_OFDMdem_BF_equal_QAMdem(:);
-[numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut_OFDMdem_BF_equal_QAMdem)+1:end),chOut_OFDMdem_BF_equal_QAMdem(1:end))
+chOut_OFDMdem_v1_BF_equal_QAMdem = qamdemod(chOut_OFDMdem_v1_BF_equal,M1,'OutputType','bit', 'UnitAveragePower', true);
+chOut_OFDMdem_v1_BF_equal_QAMdem = chOut_OFDMdem_v1_BF_equal_QAMdem(:);
+[numErrorsG_beam,berG_beam] = biterr(bitInput1(length(bitInput1)-length(chOut_OFDMdem_v1_BF_equal_QAMdem)+1:end),chOut_OFDMdem_v1_BF_equal_QAMdem(1:end))
 
-ber_tot(n) = berG_beam;
+ber_tot_v1(n) = berG_beam;
 
 
+
+% With beamformer with equalization v2:
+figure;
+
+x = real(chOut_OFDMdem_v2_BF_equal);
+x = reshape(x,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]);
+y = imag(chOut_OFDMdem_v2_BF_equal);
+y = reshape(y,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]); 
+scatter(x,y);
+title('With beamforming and equalization')
+
+chOut_OFDMdem_v2_BF_equal_QAMdem = qamdemod(chOut_OFDMdem_v2_BF_equal,M2,'OutputType','bit', 'UnitAveragePower', true);
+chOut_OFDMdem_v2_BF_equal_QAMdem = chOut_OFDMdem_v2_BF_equal_QAMdem(:);
+[numErrorsG_beam,berG_beam] = biterr(bitInput2(length(bitInput2)-length(chOut_OFDMdem_v2_BF_equal_QAMdem)+1:end),chOut_OFDMdem_v2_BF_equal_QAMdem(1:end))
+
+ber_tot_v2(n) = berG_beam;
+
+
+close all
 end
 
 
 
 %% PLOTS THE RESULTS OF TRACKING
 % Saves variables
-save('Variables1')
+%save('Variables1')
+%load('Variables1');
 
 % Create a VideoWriter object for a new video file.
-v = VideoWriter('myFile.avi');
+v = VideoWriter('File3.avi');
 v.FrameRate = 1;
 open(v)
 
@@ -444,17 +569,17 @@ for n = 1 : Geometry.N_Pack
     pause(0.1)
 
     
-    Rect    = [0.02, 0.02, 0.95, 0.9];
-    AxisPos = myPlotPos(2, 2, Rect);
+    Rect    = [0.03, 0.03, 0.95, 0.94];
+    AxisPos = PlotPos(2, 2, Rect);
       
-    % plot1 = subplot(2,2,1)
+    % plot3 = subplot(2,2,1)
     axes('Position', AxisPos(1, :));
-    x = real(chOut_OFDMdem_1_tot(n,:,:)); % first antenna
+    x = real(chOut_OFDMdem_v1_BF_equal_tot(n,:,:));
     x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-    y = imag(chOut_OFDMdem_1_tot(n,:,:));
-    y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-    scatter(x,y);
-    title('Without beamforming, without equalization', 'FontSize', 18)
+    y = imag(chOut_OFDMdem_v1_BF_equal_tot(n,:,:));
+    y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]); 
+    scatter(x,y);   
+    title(sprintf('With beamforming and equalization V1, BER = %0.5g', ber_tot_v1(n)), 'FontSize', 18)
     
     
     % plot2 = subplot(2,2,2)
@@ -466,12 +591,12 @@ for n = 1 : Geometry.N_Pack
     
     % plot3 = subplot(2,2,3)
     axes('Position', AxisPos(3, :));
-    x = real(chOut_OFDMdem_BF_equal_tot(n,:,:));
-    x = reshape(x,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
-    y = imag(chOut_OFDMdem_BF_equal_tot(n,:,:));
-    y = reshape(y,[(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]); 
+    x = real(chOut_OFDMdem_v2_BF_equal_tot(n,:,:));
+    x = reshape(x,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]);
+    y = imag(chOut_OFDMdem_v2_BF_equal_tot(n,:,:));
+    y = reshape(y,[(nfft - (length(pilot_indices2) + sum(NumGuardBandCarriers)))*nSymbols2,1]); 
     scatter(x,y);   
-    title('With beamforming and equalization', 'FontSize', 18)
+    title(sprintf('With beamforming and equalization V2, BER = %0.5g', ber_tot_v2(n)), 'FontSize', 18)
     
     % plot4 = subplot(2,2,4)
     axes('Position', AxisPos(4, :));
