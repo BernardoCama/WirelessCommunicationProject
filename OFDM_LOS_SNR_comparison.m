@@ -7,7 +7,7 @@ clc;
 %% Defining geometry and pars
 
 % CArrier frequency and wavelength
-Pars.fc = 26e9;
+Pars.fc = 2.6e9;
 Pars.c = physconst('LightSpeed');
 Pars.lambda = Pars.c / Pars.fc;
 
@@ -15,12 +15,12 @@ Pars.lambda = Pars.c / Pars.fc;
 Geometry.BSPos = [0, 0, 25];
 
 % First veichle (V1):
-Geometry.V1PosStart = [70, -100, 1.5]; % start
-%Geometry.V1PosStart = [1e12, 1e12, 1.5]; % start
+% Geometry.V1PosStart = [25, 0, 0]; % start
+Geometry.V1PosStart = [25*cos((0)*pi/180), 25*sin((0)*pi/180), 0]; % start
 Geometry.V1PosEnd = [70, 100, 1.5];    % end
 
 % Second veichle (V2):
-Geometry.V2PosStart = [200, -50, 1.5]; % start
+Geometry.V2PosStart = [25*cos((30)*pi/180), 25*sin((30)*pi/180), 0]; % start
 Geometry.V2PosEnd = [10, -50, 1.5];    % end
 
 % Interferents:
@@ -36,13 +36,13 @@ Geometry.DistV1Start = dist3D(Geometry.V1PosStart, Geometry.BSPos); % BS and V1
 Geometry.DistV2Start = dist3D(Geometry.V2PosStart, Geometry.BSPos); % BS and V2
 
 % Initial DoA = [AoA ZoA] (ZoA = 90 - elevation angle) for the two vehicles:
-Geometry.AOAV1Start = AoA(Geometry.BSPos, Geometry.V1PosStart);
+Geometry.AOAV1Start = AoA(Geometry.V1PosStart, Geometry.BSPos);
 Geometry.ZOAV1Start = ZoA(Geometry.BSPos, Geometry.V1PosStart);
-Geometry.DOAV1Start = [Geometry.AOAV1Start Geometry.ZOAV1Start]; % DoA of V1
+Geometry.DOAV1Start = [Geometry.AOAV1Start Geometry.ZOAV1Start-90]; % DoA of V1
 
-Geometry.AOAV2Start = AoA(Geometry.BSPos, Geometry.V2PosStart);
+Geometry.AOAV2Start = AoA(Geometry.V2PosStart, Geometry.BSPos);
 Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
-Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
+Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start-90]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
 Geometry.Nant = 4;
@@ -175,6 +175,7 @@ chOut1 = collectPlaneWave(Geometry.BSarray, [chOut1], ...
 chOut2 = collectPlaneWave(Geometry.BSarray, [chOut2], ...
     [Geometry.DOAV2Start'], Pars.fc);
 
+
 chOut = chOut1 + chOut2;
 
 
@@ -259,11 +260,11 @@ for i = 1 : length(Pars.SNR)
 %     chOut1 = ifft(sum(abs(fft(chOut1(:, :))).^2) + P_noise/2);
 %     chOut2 = ifft(sum(abs(fft(chOut2(:, :))).^2) + P_noise/2);
     
-    % SNR_in = 10 * log10(sum(abs(fft(chOut)).^2) / sum(abs(fft(noise(:, :, i))).^2));
+%      SNR_in = 10 * log10(sum(abs(fft(chOut)).^2) / sum(abs(fft(noise(:, :, i))).^2))
     
     %% Estimation od the DoA:
     
-    [~, DoA] = estimator(squeeze(chOut_noise(:, :, i)));
+%     [~, DoA] = estimator(squeeze(chOut_noise(:, :, i)));
 %     DoA(1,:) = -(DoA(1,:) - 180);
 %     temp1 = DoA(:,1);
 %     DoA(:,1) = DoA(:,2);
@@ -283,32 +284,57 @@ for i = 1 : length(Pars.SNR)
 %         Conventional_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut_noise(:, :, i)));
     [chOut_simple_BF(:, i), w_simple_BF(:, i)] = ...
         Conventional_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut1));
-    
+%     figure;
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],DoA(2),...
+%         'PropagationSpeed',Pars.c,...
+%         'Type','powerdb',...
+%         'CoordinateSystem','rectangular','Weights',w_simple_BF(:, i))
+     
     % Nullsteering BF:
 %     [chOut_nulling_BF(:, i), w_nulling_BF(:, i)] = ...
 %         Nullsteering_BF(Geometry, Pars, DoA, squeeze(chOut_noise(:, :, i)));
     [chOut_nulling_BF(:, i), w_nulling_BF(:, i)] = ...
         Nullsteering_BF(Geometry, Pars, DoA, squeeze(chOut1));
+%     figure;
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%         'PropagationSpeed',Pars.c,...
+%         'Type','powerdb',...
+%         'CoordinateSystem','rectangular','Weights',w_nulling_BF(:, i))
     
     % MVDR BF:
 %     [chOut_mvdr_BF(:, i), w_mvdr_BF(:, i)] = ...
 %         MVDR_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut_noise(:, :, i)));
     [chOut_mvdr_BF(:, i), w_mvdr_BF(:, i)] = ...
-        MVDR_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut_noise(:, : , i)));
-    
+        MVDR_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut_noise(:, :, i)));
+%     figure;
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],DoA(2),...
+%         'PropagationSpeed',Pars.c,...
+%         'Type','powerdb',...
+%         'CoordinateSystem','rectangular','Weights',w_mvdr_BF(:, i))
+
     % LMS BF:
     nTrain = round(length(chOut(:,1)) / 2);
 %     [chOut_lms_BF(:, i), w_lms_BF(:, i)] = ...
 %         LMS_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut_noise(:, :, i)), waveform1(1:nTrain, :));
     [chOut_lms_BF(:, i), w_lms_BF(:, i)] = ...
         LMS_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut1), waveform1(1:nTrain, :));
+%     figure;
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%         'PropagationSpeed',Pars.c,...
+%         'Type','powerdb',...
+%         'CoordinateSystem','rectangular','Weights',w_lms_BF(:, i))
     
     % MMSE BF:
-    nTrain = round(length(chOut(:,1)) / 2);
+    nTrain = round(length(chOut(:,1)));
 %     [chOut_mmse_BF(:, i), w_mmse_BF(:, i)] = ...
 %         MMSE_BF(Geometry, Pars, squeeze(chOut_noise(:, :, i)), waveform1(1:nTrain, :));
     [chOut_mmse_BF(:, i), w_mmse_BF(:, i)] = ...
         MMSE_BF(Geometry, Pars, squeeze(chOut_noise(:, :, i)), waveform1(1:nTrain, :));
+%     figure;
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%         'PropagationSpeed',Pars.c,...
+%         'Type','powerdb',...
+%         'CoordinateSystem','rectangular','Weights',w_mmse_BF(:, i))
     
     %% Passing the signals through the different BFs
     
@@ -359,8 +385,8 @@ for i = 1 : length(Pars.SNR)
     P2_simple_BF = sum(abs(fft(chOut2_simple_BF(:, i))).^2);
     Ptot_simple_BF = sum(abs(fft(chOut_simple_BF(:, i))).^2);
     P_noise_simple_BF = sum(abs(fft(noise_simple_BF(:, i))).^2);
-    % SNR_out_simple_BF(i) = P1_simple_BF / (P2_simple_BF + P_noise_simple_BF);
-    SNR_out_simple_BF(i) = Ptot_simple_BF / (P2_simple_BF + P_noise_simple_BF);
+    SNR_out_simple_BF(i) = P1_simple_BF / (P2_simple_BF + P_noise_simple_BF);
+    % SNR_out_simple_BF(i) = Ptot_simple_BF / (P2_simple_BF + P_noise_simple_BF);
     % SNR_out_simple_BF(i) = P1_simple_BF / (P_noise_simple_BF);
     SNR_out_simple_BF(i) = 10 * log10(SNR_out_simple_BF(i));
     
@@ -369,8 +395,8 @@ for i = 1 : length(Pars.SNR)
     P2_nulling_BF = sum(abs(fft(chOut2_nulling_BF(:, i))).^2);
     Ptot_nulling_BF = sum(abs(fft(chOut_nulling_BF(:, i))).^2);
     P_noise_nulling_BF = sum(abs(fft(noise_nulling_BF(:, i))).^2);
-    % SNR_out_nulling_BF(i) = P1_nulling_BF / (P2_nulling_BF + P_noise_nulling_BF);
-    SNR_out_nulling_BF(i) = Ptot_nulling_BF / (P2_nulling_BF + P_noise_nulling_BF);
+    SNR_out_nulling_BF(i) = P1_nulling_BF / (P2_nulling_BF + P_noise_nulling_BF);
+    % SNR_out_nulling_BF(i) = Ptot_nulling_BF / (P2_nulling_BF + P_noise_nulling_BF);
     % SNR_out_nulling_BF(i) = P1_nulling_BF / (P_noise_nulling_BF);
     SNR_out_nulling_BF(i) = 10 * log10(SNR_out_nulling_BF(i));
     
@@ -379,8 +405,8 @@ for i = 1 : length(Pars.SNR)
     P2_mvdr_BF = sum(abs(fft(chOut2_mvdr_BF(:, i))).^2);
     Ptot_mvdr_BF = sum(abs(fft(chOut_mvdr_BF(:, i))).^2);
     P_noise_mvdr_BF = sum(abs(fft(noise_mvdr_BF(:, i))).^2);
-    % SNR_out_mvdr_BF(i) = P1_mvdr_BF / (P2_mvdr_BF + P_noise_mvdr_BF);
-    SNR_out_mvdr_BF(i) = Ptot_mvdr_BF / (P2_mvdr_BF + P_noise_mvdr_BF);
+    SNR_out_mvdr_BF(i) = P1_mvdr_BF / (P2_mvdr_BF + P_noise_mvdr_BF);
+    % SNR_out_mvdr_BF(i) = Ptot_mvdr_BF / (P2_mvdr_BF + P_noise_mvdr_BF);
     % SNR_out_mvdr_BF(i) = P1_mvdr_BF / (P_noise_mvdr_BF);
     SNR_out_mvdr_BF(i) = 10 * log10(SNR_out_mvdr_BF(i));
     
@@ -389,8 +415,8 @@ for i = 1 : length(Pars.SNR)
     P2_lms_BF = sum(abs(fft(chOut2_lms_BF(:, i))).^2);
     Ptot_lms_BF = sum(abs(fft(chOut_lms_BF(:, i))).^2);
     P_noise_lms_BF = sum(abs(fft(noise_lms_BF(:, i))).^2);
-    % SNR_out_lms_BF(i) = P1_lms_BF / (P2_lms_BF + P_noise_lms_BF);
-    SNR_out_lms_BF(i) = Ptot_lms_BF / (P2_lms_BF + P_noise_lms_BF);
+    SNR_out_lms_BF(i) = P1_lms_BF / (P2_lms_BF + P_noise_lms_BF);
+    % SNR_out_lms_BF(i) = Ptot_lms_BF / (P2_lms_BF + P_noise_lms_BF);
     % SNR_out_lms_BF(i) = P1_lms_BF / (P_noise_lms_BF);
     SNR_out_lms_BF(i) = 10 * log10(SNR_out_lms_BF(i));
     
@@ -410,28 +436,28 @@ end
 
 figure();
 
-plot(Pars.SNR, SNR_out_simple_BF, 'LineWidth', 2);
-pause();
+plot(Pars.SNR, SNR_out_simple_BF, '-*','Color','k','LineWidth', 2,'MarkerSize',10);
+% pause();
 
 hold on;
-plot(Pars.SNR, SNR_out_nulling_BF, 'LineWidth', 2);
-pause();
+plot(Pars.SNR, SNR_out_nulling_BF,'-+','Color','r','LineWidth', 2, 'MarkerSize',5);
+% pause();
 
 hold on;
-plot(Pars.SNR, SNR_out_mvdr_BF, 'LineWidth', 2);
-pause();
+plot(Pars.SNR, SNR_out_mvdr_BF, '-x','Color','b','LineWidth', 2, 'MarkerSize',3);
+% pause();
 
 hold on;
-plot(Pars.SNR, SNR_out_lms_BF, 'LineWidth', 2);
-pause();
+plot(Pars.SNR, SNR_out_lms_BF, '-s','Color','g','LineWidth', 2, 'MarkerSize',2);
+% pause();
 
 hold on;
-plot(Pars.SNR, SNR_out_mmse_BF, 'LineWidth', 2);
+plot(Pars.SNR, SNR_out_mmse_BF, '-o','Color','m','LineWidth', 2, 'MarkerSize',1);
 
 xlabel('Input SNR');
 ylabel('Output SNR (after BF)');
-legend('simple BF', 'null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
-title('Input - Output SNR comparison');
+legend('simple BF', 'null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF', 'LineWidth', 2);
+title(sprintf('Input - Output SNR comparison, Ninterf = %d',N_interf) , 'LineWidth', 16);
 grid on;
 
 %% NOTE 1
