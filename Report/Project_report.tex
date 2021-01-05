@@ -1,0 +1,95 @@
+\documentclass{article} %document style and layout
+\usepackage{enumitem} %list of elements
+\usepackage{imakeidx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+% \usepackage[utf8]{inputenc}
+% \usepackage[T1]{fontenc}
+\usepackage{listings} %package to import code
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{code_green},
+    keywordstyle=\color{url_blue},
+    stringstyle=\color{orange},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\usepackage{titling}
+\renewcommand\maketitlehooka{\null\mbox{}\vfill}
+\renewcommand\maketitlehookd{\vfill\null}
+
+%-------Titlepage information------------------------------------------
+\title{\textbf{\huge{Wireless internet - WiFi traffic classification.}}}
+\author{Luca Ferraro (10748116), Bernardo Camajori Tedeschini (10584438), William Colombo (10537311)\\ 
+\textcolor{url_blue}{\url{https://github.com/BernardoCama/WirelessCommunicationProject}}}
+\date{A.Y. 2020/2021♯}
+%----------------------------------------------------------------------
+
+\begin{document}
+\definecolor{url_blue}{rgb}{0,0.427,0.639} %rgb: 0, 109, 163 
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{code_green}{RGB}{11,102,35}
+
+\begin{titlingpage}
+    \maketitle
+\end{titlingpage}
+
+\newpage{}
+
+\tableofcontents
+\listoffigures
+\lstlistoflistings
+\newpage{}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\section{Introduction}
+\label{sect:introduction}
+\input{Introduction.tex}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\section{Project description}
+\label{sect:project}
+\input{Project_description.tex}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\section{SNR comparison}
+\label{sect:project}
+\input{SNR_comparison.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\section{Antenna array comparison}
+\label{sect:project}
+\input{Antenna_array_comparison.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\section{Tracking}
+\label{sect:project}
+\input{Tracking.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\section{Conclusions}
+\label{sect:project}
+\input{Conclusions.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\end{document}
