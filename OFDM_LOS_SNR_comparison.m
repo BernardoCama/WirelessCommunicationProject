@@ -166,16 +166,24 @@ elseif N_interf == 1
     chOut2 = LOS(waveform2, Geometry.V2PosStart, Geometry.BSPos, Pars);
 end
 
-% Power of received signals without noise:
+
+% steervec = phased.SteeringVector('SensorArray',Geometry.BSarray);
+% s1 = steervec(Pars.fc, Geometry.DOAV1Start');
+% s2 = steervec(Pars.fc, Geometry.DOAV2Start');
+% 
+% chOut1_steer = chOut1*s1.';
+% chOut2_steer = chOut2*s2.';
 
 % Calucation of received wavefrom1 (attention to dimension of waveforms):
 chOut1 = collectPlaneWave(Geometry.BSarray, [chOut1], ...
         [Geometry.DOAV1Start'], Pars.fc);
-
+   
 chOut2 = collectPlaneWave(Geometry.BSarray, [chOut2], ...
     [Geometry.DOAV2Start'], Pars.fc);
 
 
+% a = chOut1'*chOut1;
+% b = chOut2'*chOut2;
 chOut = chOut1 + chOut2;
 
 
@@ -252,9 +260,10 @@ for i = 1 : length(Pars.SNR)
 
     % chOut1_noise(:, :, i) = awgn(chOut1, Pars.SNR(i)/2, 'measured');
     % chOut2_noise(:, :, i) = awgn(chOut2, Pars.SNR(i)/2, 'measured');
-    chOut_noise(:, :, i) = awgn(chOut, Pars.SNR(i), 'measured');
+    chOut_noise(:, :, i) = awgn(chOut1, Pars.SNR(i), 'measured');
     % chOut_noise(:, :, i) = chOut1_noise(:, :, i) + chOut2_noise(:, :, i);
-    noise(:, :, i) = chOut_noise(:, :, i) - chOut(:, :);
+    noise(:, :, i) = chOut_noise(:, :, i) - chOut1(:, :);
+    chOut_noise(:, :, i) = chOut_noise(:, :, i) + chOut2;
     
 %     P_noise = sum(abs(fft2(noise(:, :, i))).^2);
 %     chOut1 = ifft(sum(abs(fft(chOut1(:, :))).^2) + P_noise/2);
@@ -296,7 +305,7 @@ for i = 1 : length(Pars.SNR)
     [chOut_nulling_BF(:, i), w_nulling_BF(:, i)] = ...
         Nullsteering_BF(Geometry, Pars, DoA, squeeze(chOut1));
 %     figure;
-%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],DoA(2),...
 %         'PropagationSpeed',Pars.c,...
 %         'Type','powerdb',...
 %         'CoordinateSystem','rectangular','Weights',w_nulling_BF(:, i))
@@ -319,7 +328,7 @@ for i = 1 : length(Pars.SNR)
     [chOut_lms_BF(:, i), w_lms_BF(:, i)] = ...
         LMS_BF(Geometry, Pars, DoA(:, 1), squeeze(chOut1), waveform1(1:nTrain, :));
 %     figure;
-%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],DoA(2),...
 %         'PropagationSpeed',Pars.c,...
 %         'Type','powerdb',...
 %         'CoordinateSystem','rectangular','Weights',w_lms_BF(:, i))
@@ -331,7 +340,7 @@ for i = 1 : length(Pars.SNR)
     [chOut_mmse_BF(:, i), w_mmse_BF(:, i)] = ...
         MMSE_BF(Geometry, Pars, squeeze(chOut_noise(:, :, i)), waveform1(1:nTrain, :));
 %     figure;
-%     pattern(Geometry.BSarray,Pars.fc,[-180:180],0,...
+%     pattern(Geometry.BSarray,Pars.fc,[-180:180],DoA(2),...
 %         'PropagationSpeed',Pars.c,...
 %         'Type','powerdb',...
 %         'CoordinateSystem','rectangular','Weights',w_mmse_BF(:, i))
@@ -341,42 +350,42 @@ for i = 1 : length(Pars.SNR)
     % Simple BF:
     % chOut1_simple_BF(:, i) = (chOut1_noise(:, :, i)' * (w_simple_BF(:, i)))';
     % chOut2_simple_BF(:, i) = (chOut2_noise(:, :, i)' * (w_simple_BF(:, i)))';
-    chOut1_simple_BF(:, i) = (transpose((w_simple_BF(:, i))) * chOut1')';
-    chOut2_simple_BF(:, i) = (transpose((w_simple_BF(:, i))) * chOut2')';
-    chOut_simple_BF(:, i) = (transpose((w_simple_BF(:, i))) * squeeze(chOut_noise(:, :, i))')';
-    noise_simple_BF(:, i) = (transpose((w_simple_BF(:, i))) *  noise(:, :, i)')';
+    chOut1_simple_BF(:, i) = ((w_simple_BF(:, i))') * chOut1.';
+    chOut2_simple_BF(:, i) = ((w_simple_BF(:, i))') * chOut2.';
+    chOut_simple_BF(:, i) = ((w_simple_BF(:, i))') * squeeze(chOut_noise(:, :, i)).';
+    noise_simple_BF(:, i) = ((w_simple_BF(:, i))') *  noise(:, :, i).';
     
     % Nullsteering BF:
     % chOut1_nulling_BF(:, i) = transpose(chOut1_noise(:, :, i)' * (w_nulling_BF(:, i)));
     % chOut2_nulling_BF(:, i) = transpose(chOut2_noise(:, :, i)' * (w_nulling_BF(:, i)));
-    chOut1_nulling_BF(:, i) = transpose((w_nulling_BF(:, i))) * chOut1';
-    chOut2_nulling_BF(:, i) = transpose((w_nulling_BF(:, i))) * chOut2';
-    chOut_nulling_BF(:, i) = (transpose((w_nulling_BF(:, i))) * squeeze(chOut_noise(:, :, i))')';
-    noise_nulling_BF(:, i) = transpose((w_nulling_BF(:, i))) * noise(:, :, i)';
+    chOut1_nulling_BF(:, i) = ((w_nulling_BF(:, i))') * chOut1.';
+    chOut2_nulling_BF(:, i) = ((w_nulling_BF(:, i))') * chOut2.';
+    chOut_nulling_BF(:, i) = ((w_nulling_BF(:, i))') * squeeze(chOut_noise(:, :, i)).';
+    noise_nulling_BF(:, i) = ((w_nulling_BF(:, i))') * noise(:, :, i).';
     
     % MVDR BF:
     % chOut1_mvdr_BF(:, i) = transpose(chOut1_noise(:, :, i)' * (w_mvdr_BF(:, i)));
     % chOut2_mvdr_BF(:, i) = transpose(chOut2_noise(:, :, i)' * (w_mvdr_BF(:, i)));
-    chOut1_mvdr_BF(:, i) = transpose((w_mvdr_BF(:, i))) * chOut1';
-    chOut2_mvdr_BF(:, i) = transpose((w_mvdr_BF(:, i))) * chOut2';
-    chOut_mvdr_BF(:, i) = (transpose((w_mvdr_BF(:, i))) * squeeze(chOut_noise(:, :, i))')';
-    noise_mvdr_BF(:, i) = transpose((w_mvdr_BF(:, i))) * noise(:, :, i)';
+    chOut1_mvdr_BF(:, i) = ((w_mvdr_BF(:, i))') * chOut1.';
+    chOut2_mvdr_BF(:, i) = ((w_mvdr_BF(:, i))') * chOut2.';
+    chOut_mvdr_BF(:, i) = ((w_mvdr_BF(:, i))') * squeeze(chOut_noise(:, :, i)).';
+    noise_mvdr_BF(:, i) = ((w_mvdr_BF(:, i))') * noise(:, :, i).';
     
     % LMS BF:
     % chOut1_lms_BF(:, i) = transpose(chOut1_noise(:, :, i)' * (w_lms_BF(:, i)));
     % chOut2_lms_BF(:, i) = transpose(chOut2_noise(:, :, i)' * (w_lms_BF(:, i)));
-    chOut1_lms_BF(:, i) = transpose((w_lms_BF(:, i))) * chOut1';
-    chOut2_lms_BF(:, i) = transpose((w_lms_BF(:, i))) * chOut2';
-    chOut_lms_BF(:, i) = (transpose((w_lms_BF(:, i))) * squeeze(chOut_noise(:, :, i))')';
-    noise_lms_BF(:, i) = transpose((w_lms_BF(:, i))) * noise(:, :, i)';
+    chOut1_lms_BF(:, i) = ((w_lms_BF(:, i))') * chOut1.';
+    chOut2_lms_BF(:, i) = ((w_lms_BF(:, i))') * chOut2.';
+    chOut_lms_BF(:, i) = ((w_lms_BF(:, i))') * squeeze(chOut_noise(:, :, i)).';
+    noise_lms_BF(:, i) = ((w_lms_BF(:, i))') * noise(:, :, i).';
     
     % MMSE BF:
     % chOut1_mmse_BF(:, i) = transpose(chOut1_noise(:, :, i)' * (w_mmse_BF(:, i)));
     % chOut2_mmse_BF(:, i) = transpose(chOut2_noise(:, :, i)' * (w_mmse_BF(:, i)));
-    chOut1_mmse_BF(:, i) = transpose((w_mmse_BF(:, i))) * chOut1';
-    chOut2_mmse_BF(:, i) = transpose((w_mmse_BF(:, i))) * chOut2';
-    chOut_mmse_BF(:, i) = (transpose((w_mmse_BF(:, i))) * squeeze(chOut_noise(:, :, i))')';
-    noise_mmse_BF(:, i) = transpose((w_mmse_BF(:, i))) * noise(:, :, i)';
+    chOut1_mmse_BF(:, i) = ((w_mmse_BF(:, i))') * chOut1.';
+    chOut2_mmse_BF(:, i) = ((w_mmse_BF(:, i))') * chOut2.';
+    chOut_mmse_BF(:, i) = ((w_mmse_BF(:, i))') * squeeze(chOut_noise(:, :, i)).';
+    noise_mmse_BF(:, i) = ((w_mmse_BF(:, i))') * noise(:, :, i).';
     
     %% Computation of the power of good (V1) and interfering (V2) singals after the BF and of SNR:
     
