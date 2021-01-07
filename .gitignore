@@ -1,1 +1,15 @@
 *.asv
+*.aux
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.synctex.gz
+*.toc
+*.tdo
+*.vscode
+*.out
+*.lols
+*.DS_Store
+*.lol
