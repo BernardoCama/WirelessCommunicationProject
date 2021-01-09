@@ -1,0 +1,67 @@
+In this section, we describe briefly the key concepts that 
+are mandatory for the comprehension of the project.
+
+\subsection{OFDM signal}
+
+OFDM (Orthogonal Frequency Division Multiplexing)
+is a multi-carrier modulation that is able to obtain:
+\begin{enumerate}
+    \item \textbf{Flexibilty} By means of:
+    \begin{itemize}
+        \item   \textbf{Adaptive Bit Loading} Adaptive modulation, coding for each sub-carrier.
+        \item   \textbf{Multiple Access} Multiple Access Feature with the use of OFDMA.
+    \end{itemize}
+    \item \textbf{Digital Implementation} With the use of DFT and IDFT at Tx and Rx side respectively to pass from Samples in frequency domain to time domain and viceversa.
+    \item \textbf{Simple Equalization} Through the use of Cyclic Prefix that permits the rapresentation of the channel with a single tap (Flat Ch) in each sub-carrier.
+    \item \textbf{MIMO Implemetaion} Suited for the use of MIMO/MMIMO Systems.
+\end{enumerate}
+
+The main parameters of the Modulation are:
+\begin{enumerate}
+    \item \textbf{Nsc} Number of sub-carrier which usually is in the form $2^{b}$ since it is optimized for the FFT and IFFT implementaion.\\
+                        In our case: Nsc = 64.
+    \item \textbf{CyclicPrefixLength} The length of Cyclic Prefix that must be much smaller than Ts (OFDM Symbol Time).\\
+                        In our case: CyclicPrefixLength = 4.
+    \item \textbf{NumGuardBandCarriers} The number of Guard Bands in frequency domain to protect the OFDM Spectrum from other adjacent trasmissions.\\
+                        In our case: NumGuardBandCarriers = [1;1] one for each side.
+    \item \textbf{Pilot Positions} The sub-carrier location of Pilot signals, known sequence of symbols that are used to estimate tha channel.\\
+                        In our case: Pilotindices = [2]. We really don'use use the Pilot, since we consider the first symbols of the transmission as known, but for completeness we droped off at least one Pilot.
+\end{enumerate}
+
+
+\subsection{3GPP Standard}
+
+3GPP (3rd Generation Partnership Project) was founded in December 1998 when the European 
+Telecommunications Standards Institute (ETSI) 
+and other standard development organizations (SDOs) 
+from around the world to develop new technologies (technology specifications).
+
+As Channel Model we use QuaDRiGa (QUAsi Deterministic RadIo channel GenerAtor) that 
+generates realistic radio channel impulse responses for system-level simulations of mobile radio networks. 
+Quadriga indeed is able to simulate 3GPP channel models like 3GPP-3D and also the latest New Radio channel model.
+
+
+\subsection{Beamforming}
+
+A beamformer can be considered a spatial filter that suppresses
+the signal from all directions, except the desired ones by means 
+of weights applied to the signals coming from the single array elements;
+resulting in controlling the radiation pattern of the array.
+
+The \textbf{Array Pattern Function} $AF(\theta,\phi)$ is the gain that we can obtain with the 
+Beamformer in a given direction specified by:
+
+\begin{itemize}
+    \item $\theta$ = Elevation ($\pi/2$ - zenith of arrival)
+    \item $\phi$ = AoA (angle of arrival)
+\end{itemize}
+
+and it is defined as: \\\\
+$AF(\theta,\phi)$ = $w^Hs$ where:
+\begin{itemize}
+    \item $s$ are the Steering Vectors
+    \item $w$ are the weigths of the Beamformer
+\end{itemize}
+
+In the project, in particular in Section 4., we compare the different \textbf{Array Pattern Function} 
+of various type of Beamformer.
