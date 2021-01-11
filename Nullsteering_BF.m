@@ -16,7 +16,7 @@ w_H = g1*pinv(s);
 
 w = w_H';
 
-y = (w_H)*x.';
+y = w_H*x.';
 
 y = y.';
 

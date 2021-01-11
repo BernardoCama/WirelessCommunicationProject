@@ -35,7 +35,12 @@ end
 
 w = w_(end-2000,:).';
 
-y = (w')*x.';
+w_H = w';
+
+% w_H = w_H';
+% w_H = w_H.';
+
+y = w_H*x.';
 
 y = y.';
 end

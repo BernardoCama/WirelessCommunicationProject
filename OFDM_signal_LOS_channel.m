@@ -44,7 +44,7 @@ Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
 
 % Defining a rectangular Nant x Nant antenna array with antenna spacing = lambda/2:
-Geometry.Nant = 16;
+Geometry.Nant = 8;
 Geometry.BSarray = phased.URA('Size', [Geometry.Nant Geometry.Nant], ...
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'x');
 
@@ -84,7 +84,7 @@ ofdmMod1 = comm.OFDMModulator('FFTLength', nfft, ...
     'PilotCarrierIndices', pilot_indices1);
 
 % QAM modulation order:
-M1 = 16;
+M1 = 4;
 
 % Generation of random bits:
 bitInput1 = randi([0 1], (nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers))) * nSymbols1 * log2(M1), 1);
@@ -163,13 +163,13 @@ chOut = collectPlaneWave(Geometry.BSarray, [w1 w2], ...
         [Geometry.DOAV1Start', Geometry.DOAV2Start'], Pars.fc);
 
 % Adding AWGN noise to waveform:
-Pars.SNR = 20; % in dB
+Pars.SNR = 10; % in dB
 % 
 chOut_noise = awgn(chOut, Pars.SNR, 'measured');
 noise = chOut_noise - chOut;
 chOut = chOut_noise;
 
-
+% 10 *log10( sum(abs(fft(chOut)).^2)/ sum(abs(fft(noise)).^2))
 
 %% Estimation of DoA (MUSIC algorithm)
 
@@ -194,14 +194,14 @@ DoAs(:,1) = DoAs(:,2);
 DoAs(:,2) = temp1;
 
 % Plotting:
-% figure();
-% plotSpectrum(estimator);
+figure();
+plotSpectrum(estimator);
 
 
 
 
 %% Beamformer 0 SIMPLE, 1 NULLING, 2 MVDR, 3 LMS, 4 MMSE
-Type = 3;
+Type = 0;
 
 switch Type
     

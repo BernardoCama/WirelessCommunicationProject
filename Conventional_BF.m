@@ -1,14 +1,14 @@
 function [y,w] = Conventional_BF(Geometry, Pars, doas, x)
 
 steervec = phased.SteeringVector('SensorArray',Geometry.BSarray);
+
 s = steervec(Pars.fc, doas);
-% s = steervector(Geometry, Pars, doas);
-
-
 
 w = s.*1/prod(Geometry.BSarray.Size);
 
-y = (w.')*x';
+w_H = w';
 
-y = y';
+y = w_H*x.';
+
+y = y.';
 end

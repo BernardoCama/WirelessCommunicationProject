@@ -6,13 +6,15 @@ R = x_short'*x_short;
 
 p = d'*x_short;
 
-w = R\(p.');
+w_H = R\(p.');
 
-w_H = w';
+w_H = w_H.';
 
-y = (w_H)*x.';
+w = w_H';
 
-y = y.';
+y = x*w;
+
+% y = y.';
 
 end
 

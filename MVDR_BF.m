@@ -11,13 +11,15 @@ s = steervec(Pars.fc, doas);
 % R = sensorcov(Geometry.BSAntennaPos, doas, Noise_power(1));
 R = x'*x;
 
-w = (inv(R)*s)/(s'*inv(R)*s);
+w_H = (inv(R)*s)/(s'*inv(R)*s);
 
-w_H = w';
+w_H = w_H.';
 
-y = (w_H)*x.';
+w= w_H';
 
-y = y.';
+y = x*w;
+
+% y = y.';
 
 % s.t. w_H*s = 1
 end
