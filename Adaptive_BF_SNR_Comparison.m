@@ -13,7 +13,7 @@ Pars.lambda = Pars.c / Pars.fc; %[m] Wavelength
 
 %% Defining Geometry
 
-Geometry.Nant = 8; %Number of antennas for each array.
+Geometry.Nant = 16; %Number of antennas for each array.
 Geometry.AntSpacing=0.5; %[m] x lambda
 Geometry.NSource=1; %Number of arrays
    
@@ -50,8 +50,8 @@ N_iter = 800;
 
 SNR = [0:10]; % input SNR
 
-N_interf = 0;
-N_interf_test=0; %use the same value as N_interf
+N_interf = 1;
+N_interf_test=1; %use the same value as N_interf
 ang_sep = 20; %Angular separation
 SNRout = zeros(5,length(SNR)); %SNR output with interference
 SNRout0 = zeros(5,length(SNR)); %SNR output without interference
@@ -170,23 +170,24 @@ if(N_interf>0)
             interf.s = [interf.s,s_corr.'];
         end
                 
-        Ps = 1; % signal power
+        Ps = 1e-6; % signal power
 
         % total signal
         S = [source.s,interf.s];
         U = Ps * eye(1+N_interf);
         Rs = S*U*S';
-        %
+              
         % signal
         S0 = [source.s];
         U0 = Ps * eye(1);
         Rs0 = S0*U0*S0';
         p = source.s;
+        
         % interference
         if (N_interf > 0)
             Si = [interf.s];
             Ui = Ps * eye(N_interf);
-            Rsi = Si*Ui*Si';
+            Rsi = interf.s*Ui*interf.s';
         else
             Rsi = zeros(Geometry.Nant,Geometry.Nant);
         end
@@ -195,9 +196,23 @@ if(N_interf>0)
             
             sigma2n = Ps / (10^(SNR(isnr)/10));
             Rn = sigma2n * eye(Geometry.Nant);
-
+            
+            % Rs autocorrelation of total signal v1 + v2 (without noise)
+            % Rn autocorrelation of noise
+            % Ru autocorrelation of all
             Ru = Rs + Rn;
+            
 
+%             Rs0_2= S0*U0*S0';
+%             Rsi_2 = interf.s*Ui*interf.s';
+%             Rs = Rs0_2 + Rsi_2;
+            
+            
+            
+%             Rs_utile = Rs0;
+%             Rs_interf = Rsi;
+%             Ru = Rs0 + Rsi + Rn;
+            
             % simple BF
             w = source.s;
             Pn = w'*Rn*w; %Noise power
@@ -226,7 +241,7 @@ if(N_interf>0)
             SNRout(3,isnr) = SNRout(3,isnr) + Psout/(Pn+Piout);
 
             % MMSE BF
-            w = inv(Ru)*p;
+            w = inv(Ru)*source.s;
             w_mmse = w;
             Pn = w'*Rn*w; %Noise power
             Psout = w'*Rs0*w; %Output signal power
@@ -284,7 +299,7 @@ if(N_interf>0)
     plot(SNR, SNRout(1,:),'-o');
     hold on;
     plot(SNR, SNRout(2,:),'-s');
-    plot(SNR, SNRout(3,:),'-+');
+    plot(SNR, SNRout(3,:),'-*');
     plot(SNR, SNRout(4,:),'-*');
     plot(SNR, SNRout(5,:),'-p');
     hold off;
@@ -293,15 +308,15 @@ if(N_interf>0)
     ylabel('SNR (Output)[dB]'); 
     title('Adaaptive Beam-forming performance with interference');
 
-    %Plot AF -->FIX NEEDED
+%     Plot AF -->FIX NEEDED
 %     if (N_interf == 1)
 %     teta_corr = -pi/2:pi/512:pi/2;
 %     [vc]=steervector(Geometry.tetadir,Geometry.Nant,Pars.lambda*0.5,Pars.fc);
 %     AF_simple = w_simple(length(Geometry.Nant),:)*vc.';
 %     AF_null=w_null(length(Geometry.Nant),:)*vc.';
 %     AF_MMSE=w_mmse(length(Geometry.Nant),:)*vc.';
-%     AF_LMS=w_lms(length(Geometry.Nant),:)*vc.';
-%     
+% %     AF_LMS=w_lms(length(Geometry.Nant),:)*vc.';
+% %     
 %     % figure();
 %     plot(Geometry.tetadir*180/pi,10*log10(abs(AF_simple)));
 %     hold on;
@@ -314,7 +329,7 @@ if(N_interf>0)
 %     
 %     xlabel('\theta');
 %     ylabel('AF [dB]');
-%     end
+% %     end
 end
 
 
