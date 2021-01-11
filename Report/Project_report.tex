@@ -1,31 +1,12 @@
-\documentclass{article}
+\documentclass{article} %document style and layout
 \usepackage{enumitem} %list of elements
 \usepackage{imakeidx}
-\usepackage{inputenc}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{subcaption}
-\usepackage{listings} %package to import code
-\usepackage{newunicodechar}
-\lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
-    commentstyle=\color{code_green},
-    keywordstyle=\color{url_blue},
-    stringstyle=\color{orange},
-    basicstyle=\ttfamily\footnotesize,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                  
-    showspaces=false,                
-    showstringspaces=false,
-    showtabs=false,                  
-    tabsize=2
-}
-\lstset{style=mystyle}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 
 \usepackage{titling}
 \renewcommand\maketitlehooka{\null\mbox{}\vfill}
@@ -54,7 +35,6 @@
 
 \tableofcontents
 \listoffigures
-\lstlistoflistings
 \newpage{}
 
 %------------------------------------------------------------------------------------------------------------------------------------------------
@@ -63,7 +43,7 @@
 \label{sec:introduction}
 \input{Introduction.tex}
 
-%------------------------------------------------------------------------------------------------------------------------------------------------
+%-----------------------------------------------------------------------------------------------------------------------------------------------f
 \clearpage
 \section{Project description}
 \label{sec:project}
