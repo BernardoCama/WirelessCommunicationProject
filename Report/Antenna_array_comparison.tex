@@ -40,7 +40,7 @@ The simulation proceeds with a loop on the four different antenna arrays. In eac
 
 \begin{enumerate}
     \item Definition of the current antenna array.
-    \item Passage of the signal through the QuaDRiGa channel ()$QuaDRiGa\_UD2D\_LOS$ scenario).
+    \item Passage of the signal through the QuaDRiGa channel ($QuaDRiGa\_UD2D\_LOS$ scenario).
     \item Estimation of the \textit{DoA} of the two vehicles using the \textit{MUSIC} algorithm.
     \item Application of the five beamformers to the received signal. Here, we use the real $DoA$, and not the estimated one
             for a more consistent comparison of the results.
@@ -70,7 +70,7 @@ looking at the antenna pattern functions).
 
 \subsection{Results: antenna pattern functions}
 
-The Figure \ref{{fig:Array_pattern} shows for each of the four antenna arrays the array pattern function of the five
+The Figure \ref{fig:Array_pattern} shows for each of the four antenna arrays the array pattern function of the five
 beamforming techniques we have implemented; the array pattern functions have been plotted on the zenith angles of the source.
 We have also plotted a vertical line that represents the $DoA$ of the source.\\
 The most interesting things to be noticed are two:
@@ -89,7 +89,7 @@ The most interesting things to be noticed are two:
     \label{fig:Array_pattern}
 \end{figure}
 
-\subsection{Results: \textit{BER}
+\subsection{Results: \textit{BER}}
 
 Finally, the Figure \ref{fig:BER} shows how the $BER$ varies for the five beamformers as a function of the numberr of antennas.\\
 As we can see, the $BER$ is different from zero only when we use the 2x2 antenna array. This means that four antennas may not
