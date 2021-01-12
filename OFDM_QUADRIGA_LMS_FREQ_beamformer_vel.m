@@ -43,8 +43,6 @@ Geometry.V2PosStart = [200, -50, 1.5]; % start [m]
 Geometry.V2PosEnd = [0, -50, 1.5];    % end [m]
 Geometry.V2Positions = Positions(Geometry.V2PosStart, Geometry.V2PosEnd, Geometry.N_Pack);
 
-
-
 % Velocities of veichles:
 Geometry.vel1 = [0;200;0].* 1/12; % 16.67 [m/s] = 60 [km/h]
 Geometry.vel2 = [-200;0;0].* 1/12; % 16.67 [m/s] = 60 [km/h]
@@ -61,10 +59,6 @@ Geometry.Ts = 17.84e-6; % [s]
 
 % Coherence Time in Symbols
 Geometry.Tc_symb = floor(Geometry.Tc/Geometry.Ts);
-
-% Interferents:
-Geometry.I1Pos = [10, -210, 1.5]; 
-Geometry.I2Pos = [-150, 100, 1.5];
 
 % Distance covered by veichles:
 Geometry.T1 = dist3D(Geometry.V1PosStart, Geometry.V1PosEnd);  % V1
@@ -377,7 +371,7 @@ else
 end
 
 % Using real angles
-DoAs = squeeze(DoAs_tot_eff(n,:,:));
+% DoAs = squeeze(DoAs_tot_eff(n,:,:));
 
 % Plotting and Saving images:
 fig = plotSpectrum(estimator);
@@ -445,7 +439,7 @@ n_training_v2 = size(chOut_OFDMdem_v2_BF,2);
 max_iter = 100;
 
 % Tap of the equalizer
-g_len = 2;
+g_len = 1;
 
 chOut_OFDMdem_v1_BF_equal = zeros (size(chOut_OFDMdem_v1_BF));
 chOut_OFDMdem_v2_BF_equal = zeros (size(chOut_OFDMdem_v2_BF));
@@ -556,7 +550,7 @@ end
 %load('Variables1');
 
 % Create a VideoWriter object for a new video file.
-v = VideoWriter('File3.avi');
+v = VideoWriter('DoAs_without_music_1tap.avi');
 v.FrameRate = 1;
 open(v)
 
