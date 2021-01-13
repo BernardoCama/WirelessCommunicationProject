@@ -18,7 +18,7 @@ clc;
 %% DEFINING GEOMETRY AND PARS
 
 % Carrier frequency and wavelength
-Pars.fc = 26e9;
+Pars.fc = 2.6e9;
 Pars.c = physconst('LightSpeed');
 Pars.lambda = Pars.c / Pars.fc;
 
@@ -27,15 +27,17 @@ Geometry.BSPos = [0, 0, 25];
 
 % First veichle (V1):
 Geometry.V1PosStart = [70, -100, 1.5]; % start
+% Geometry.V1PosStart = [10*cos((30)*pi/180), 10*sin((30)*pi/180), 0]; % start
 Geometry.V1PosEnd = [70, 100, 1.5];    % end
 
 % Second veichle (V2):
 Geometry.V2PosStart = [200, -50, 1.5]; % start 
+%Geometry.V2PosStart = [25*cos((60)*pi/180), 25*sin((60)*pi/180), 0]; % start
 Geometry.V2PosEnd = [10, -50, 1.5];    % end
 
-% Interferents:
-Geometry.I1Pos = [10, -210, 1.5]; 
-Geometry.I2Pos = [-150, 100, 1.5];
+% % Interferents:
+% Geometry.I1Pos = [10, -210, 1.5]; 
+% Geometry.I2Pos = [-150, 100, 1.5];
 
 % Distance covered by veichles:
 Geometry.T1 = dist3D(Geometry.V1PosStart, Geometry.V1PosEnd);  % V1
@@ -45,14 +47,19 @@ Geometry.T2 = dist3D(Geometry.V2PosStart, Geometry.V2PosEnd);  % V2
 Geometry.DistV1Start = dist3D(Geometry.V1PosStart, Geometry.BSPos); % BS and V1
 Geometry.DistV2Start = dist3D(Geometry.V2PosStart, Geometry.BSPos); % BS and V2
 
-% Initial DoA = [AoA ZoA] (ZoA = 90 - elevation angle) for the two vehicles:
+% Initial DoA = [AoA ZoA] (ZoA = 90 - elevation angle) for the first vehicle:
 Geometry.AOAV1Start = AoA(Geometry.BSPos, Geometry.V1PosStart);
 Geometry.ZOAV1Start = ZoA(Geometry.BSPos, Geometry.V1PosStart);
-Geometry.DOAV1Start = [Geometry.AOAV1Start Geometry.ZOAV1Start]; % DoA of V1
+Geometry.DOAV1Start = [Geometry.AOAV1Start; Geometry.ZOAV1Start];
+Geometry.DOAV1Start(1) = wrapTo180(Geometry.DOAV1Start(1) - 180);
+Geometry.DOAV1Start(2) = 90 - Geometry.DOAV1Start(2);
 
+% Initial DoA = [AoA ZoA] (ZoA = 90 - elevation angle) for the second vehicle:
 Geometry.AOAV2Start = AoA(Geometry.BSPos, Geometry.V2PosStart);
 Geometry.ZOAV2Start = ZoA(Geometry.BSPos, Geometry.V2PosStart);
-Geometry.DOAV2Start = [Geometry.AOAV2Start Geometry.ZOAV2Start]; % DOA of V2
+Geometry.DOAV2Start = [Geometry.AOAV2Start; Geometry.ZOAV2Start];
+Geometry.DOAV2Start(1) = wrapTo180(Geometry.DOAV2Start(1) - 180);
+Geometry.DOAV2Start(2) = 90 - Geometry.DOAV2Start(2);
 
 % Vector of sizes of antenna arrays:
 Geometry.Nant = [2 4 8 16];
@@ -71,7 +78,8 @@ Geometry.BSarray_16x16 = phased.URA('Size', [Geometry.Nant(4) Geometry.Nant(4)],
     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'z');
 
 % Putting all antenna arrays into a vector:
-Geometry.BSarray_all = {Geometry.BSarray_2x2 Geometry.BSarray_4x4 Geometry.BSarray_8x8 Geometry.BSarray_16x16};
+Geometry.BSarray_all = {Geometry.BSarray_2x2 Geometry.BSarray_4x4 ...
+    Geometry.BSarray_8x8 Geometry.BSarray_16x16};
 
 % Geometry.Nant = [4 16];
 % 
@@ -180,15 +188,12 @@ Fs2 = 180000;
 ofdmDemod1 = comm.OFDMDemodulator(ofdmMod1);
 ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
-% Visualizing OFDM mapping:
-% showResourceMapping(ofdmMod1);
-% title('OFDM modulators (1 = 2)');
-
 
 %% DEFINITION OF OUTPUTS TO BE COMPARED
 
 % Detected direction of arrivals of the first vehicle (only one that can be correctly detected in this case):
-DoAs = zeros(2, length(Geometry.Nant));
+DoA1 = zeros(2, length(Geometry.Nant));
+DoA2 = zeros(2, length(Geometry.Nant));
 
 % BER of the beamformers (only after beamformer and with equalization case, one column per BF type):
 ber = ones(length(Geometry.Nant), 5);
@@ -282,14 +287,12 @@ for ant = 1 : length(Geometry.Nant)
     tx_track1.initial_position = Geometry.V1PosStart';
     tx_track2.initial_position = Geometry.V2PosStart';
     
-    l.tx_position = [Geometry.V1PosStart', Geometry.V2PosStart',...
-        Geometry.I1Pos', Geometry.I2Pos'];
-    l.tx_track(1,1) = copy(tx_track1);
-    l.tx_track(1,2) = copy(tx_track2);
+    l.tx_position = [Geometry.V1PosStart', Geometry.V2PosStart'];
     l.rx_position = Geometry.BSPos';
     
     % Visualize model
     % l.visualize();
+    % PlotScenario(Geometry);
     
     % Run the model
     l.set_pairing;
@@ -298,7 +301,7 @@ for ant = 1 : length(Geometry.Nant)
     % Veichle 1
     chTaps1 = size(chan(1).delay); % [16 1 34 2]
     TS = Geometry.Ts;
-    WFlenght = size(waveform1,1);
+    WFlenght = size(waveform1, 1);
     chOut1 = zeros(chTaps1(1), WFlenght);
     TsVect = 0:TS:TS*(WFlenght-1);
     
@@ -349,20 +352,17 @@ for ant = 1 : length(Geometry.Nant)
         'NumSignalsSource', 'Property', ...
         'DOAOutputPort', true, ...
         'NumSignals', 2, ...
-        'AzimuthScanAngles', -90:.1:90, ...
+        'AzimuthScanAngles', -180:.5:180, ...
         'ElevationScanAngles', 0:0.5:90);
     
     % Estimation od DoA of singal in output from the channel:
-    [~, DoAs_tmp] = estimator(chOut);
+    [~, DoA_tmp] = estimator(chOut);
     
     % DoA of the first vehicle:
-    DoAs(:, ant) = DoAs_tmp(:, 1);
+    DoA1(:, ant) = DoA_tmp(:, 1);
     
-    % THIS IS FOR THIS SPECIFIC CASE -> NEED TO FIX FOR GENERAL CASE:
-    % DoAs(1,:) = -(DoAs(1,:) - 180);
-    % temp1 = DoAs(:,1);
-    % DoAs(:,1) = DoAs(:,2);
-    % DoAs(:,2) = temp1;
+    % DoA of the second vehicle:
+    DoA2(:, ant) = DoA_tmp(:, 2);
     
     % Plotting:
     % figure();
@@ -372,20 +372,20 @@ for ant = 1 : length(Geometry.Nant)
     
     % Simple BF:
     [chOut_simple_BF(:, ant), w_simple_BF(1:Geometry.Nant(ant)^2, ant)] = ...
-        Conventional_BF(Geometry, Pars, DoAs_tmp(:, 1), chOut);
+        Conventional_BF(Geometry, Pars, Geometry.DOAV1Start, chOut);
     
     % Nullsteering BF:
     [chOut_nulling_BF(:, ant), w_nulling_BF(1:Geometry.Nant(ant)^2, ant)] = ...
-        Nullsteering_BF(Geometry, Pars, DoAs_tmp, chOut);
+        Nullsteering_BF(Geometry, Pars, [Geometry.DOAV1Start, Geometry.DOAV2Start], chOut);
     
     % MVDR BF:
     [chOut_mvdr_BF(:, ant), w_mvdr_BF(1:Geometry.Nant(ant)^2, ant)] = ...
-        MVDR_BF(Geometry, Pars, DoAs_tmp(:, 1), chOut);
+        MVDR_BF(Geometry, Pars, Geometry.DOAV1Start, chOut);
     
     % LMS BF:
     nTrain = round(length(chOut(:,1)) / 2);
     [chOut_lms_BF(:, ant), w_lms_BF(1:Geometry.Nant(ant)^2, ant)] = ...
-        LMS_BF(Geometry, Pars, DoAs_tmp(:, 1), chOut, waveform1(1:nTrain, :));
+        LMS_BF(Geometry, Pars, Geometry.DOAV1Start, chOut, waveform1(1:nTrain, :));
     
     % MMSE BF:
     nTrain = round(length(chOut(:,1)) / 2);
@@ -443,7 +443,7 @@ for ant = 1 : length(Geometry.Nant)
     chOut_lms_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_lms_BF(:, ant));
     chOut_mmse_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_mmse_BF(:, ant));
     
-    % BF: no, equalization: yes:
+    % BF: yes, equalization: yes:
     chOut_simple_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_simple_BF_equal(:, ant));
     chOut_nulling_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_nulling_BF_equal(:, ant));
     chOut_mvdr_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_mvdr_BF_equal(:, ant));
@@ -526,62 +526,84 @@ open(v);
 % Creating video:
 for bf = 1 : 5
     
+    % The current BF:
+    switch bf
+        case 1
+            bf_name = 'SIMPLE BF';
+        case 2
+            bf_name = 'NULL-STEERING BF';
+        case 3
+            bf_name = 'MVDR BF';
+        case 4
+            bf_name = 'LMS BF';
+        case 5
+            bf_name = 'MMSE BF';
+    end
+    
     % Creating video:
     frame = figure();
     setappdata(gcf, 'SubplotDefaultAxesLocation', [0, 0, 1, 1]);
     set(gcf, 'WindowState', 'Maximized');
     pause(1);
 
-    Rect = [0.02, 0.02, 0.95, 0.9];
+    Rect = [0.03, 0.04, 0.95, 0.9];
     AxisPos = myPlotPos(2, 2, Rect);
     
     % plot1 = subplot(2,2,1) -> BF with 2x2 antenna array.
     W_2x2 = w_2x2{bf};
     axes('Position', AxisPos(1, :));
-    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], 0, ...
+    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', W_2x2(1:2^2));
-    %title('Weigths of the 2x2 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 2x2 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Array pattern for the 2x2 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Array pattern for the 2x2 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
+    hold on;
+    xline(Geometry.DOAV1Start(1));
     
     % plot2 = subplot(2,2,2) -> BF with 4x4 antenna array.
     W_4x4 = w_4x4{bf};
     axes('Position', AxisPos(2, :));
-    pattern(Geometry.BSarray_all{2}, Pars.fc, [-180:180], 0, ...
+    pattern(Geometry.BSarray_all{2}, Pars.fc, [-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', W_4x4(1:4^2));
-    %title('Weigths of the antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 4x4 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Array pattern for the 4x4 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Array pattern for the 4x4 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
+    hold on;
+    xline(Geometry.DOAV1Start(1));
     
     % plot3 = subplot(2,2,3) -> BF with 8x8 antenna array.
     W_8x8 = w_8x8{bf};
     axes('Position', AxisPos(3, :));
-    pattern(Geometry.BSarray_all{3}, Pars.fc, [-180:180], 0, ...
+    pattern(Geometry.BSarray_all{3}, Pars.fc, [-180:180],Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', W_8x8(1:8^2));
-    %title('Weigths of the 8x8 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 18x8 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);  
+    %title('Array pattern for the 8x8 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Array pattern for the 8x8 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
+    hold on;
+    xline(Geometry.DOAV1Start(1));
     
     % plot4 = subplot(2,2,4) -> BF with 16x16 antenna array.
-    W_16x16 = w_4x4{bf};
+    W_16x16 = w_16x16{bf};
     axes('Position', AxisPos(4, :));
-    pattern(Geometry.BSarray_all{4}, Pars.fc, [-180:180], 0, ...
+    pattern(Geometry.BSarray_all{4}, Pars.fc, [-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', W_16x16(1:16^2));
-    %title('Weigths of the 16x16 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 16x16 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Array pattern for the 16x16 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Array pattern for the 16x16 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
+    hold on;
+    xline(Geometry.DOAV1Start(1));
     
     F = getframe(frame);
     writeVideo(v, F);
@@ -602,16 +624,18 @@ for i = 1 : 5
     
     hold on;
     w = w_2x2{i};
-    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], 0, ...
+    pattern(Geometry.BSarray_all{1}, Pars.fc, [-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', w(1:2^2));
   
 end
+hold on;
+xline(Geometry.DOAV1Start(1));
 grid on;
-title('Weights for different BF techniques using a 2x2 antenna array', 'FontSize', 18);
-legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+title('Array pattern for different BF techniques using a 2x2 antenna array', 'FontSize', 18);
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF', 'DoA');
 
 % Plot of the weigths of BFs for 4x4 antenna array
 subplot(2, 2, 2);
@@ -619,16 +643,18 @@ for i = 1 : 5
     
     hold on;
     w = w_4x4{i};
-    pattern(Geometry.BSarray_all{2}, Pars.fc,[-180:180], 0, ...
+    pattern(Geometry.BSarray_all{2}, Pars.fc,[-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', w(1:4^2));
   
 end
+hold on;
+xline(Geometry.DOAV1Start(1));
 grid on;
-title('Weights for different BF techniques using a 4x4 antenna array', 'FontSize', 18);
-legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+title('Array pattern for different BF techniques using a 4x4 antenna array', 'FontSize', 18);
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF', 'DoA');
 
 % Plot of the weigths of BFs for 8x8 antenna array
 subplot(2, 2, 3);
@@ -636,16 +662,19 @@ for i = 1 : 5
     
     hold on;
     w = w_8x8{i};
-    pattern(Geometry.BSarray_all{3}, Pars.fc,[-180:180], 0, ...
+    pattern(Geometry.BSarray_all{3}, Pars.fc,[-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', w(1:8^2));
   
 end
+hold on;
+xline(Geometry.DOAV1Start(1));
 grid on;
-title('Weights for different BF techniques using a 8x8 antenna array', 'FontSize', 18);
-legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+title('Array pattern for different BF techniques using a 8x8 antenna array', 'FontSize', 18);
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF', 'DoA');
+
 
 % Plot of the weigths of BFs for 16x16 antenna array
 subplot(2, 2, 4);
@@ -653,16 +682,18 @@ for i = 1 : 5
     
     hold on;
     w = w_16x16{i};
-    pattern(Geometry.BSarray_all{4}, Pars.fc,[-180:180], 0, ...
+    pattern(Geometry.BSarray_all{4}, Pars.fc,[-180:180], Geometry.DOAV1Start(2), ...
         'PropagationSpeed', Pars.c, ...
         'Type', 'powerdb', ...
         'CoordinateSystem', 'rectangular', ...
         'Weights', w(1:16^2));
   
 end
+hold on;
+xline(Geometry.DOAV1Start(1));
 grid on;
-title('Weights for different BF techniques using a 16x16 antenna array', 'FontSize', 18);
-legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
+title('Array pattern for different BF techniques using a 16x16 antenna array', 'FontSize', 18);
+legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF', 'DoA');
 
 
 %% PLOTS FOR COMPARING THE CONSTALLATIONS REVEALED BY DIFFERENT BEAMFORMERS WITH DIFFERENT NUMBER OF ANTENNAS
@@ -689,24 +720,25 @@ BF_16x16 = {chOut_simple_BF_equal_OFDMdem(:, :, 4) chOut_nulling_BF_equal_OFDMde
     chOut_mmse_BF_equal_OFDMdem(:, :, 4)};
 
 % Createing a videowriter object for a new video file:
-v = VideoWriter('Contellations.avi');
+v = VideoWriter('Constellations.avi');
 v.FrameRate = 1;
 open(v);
+figure();
 
 % Loop for writing video:
 for bf = 1 : 5
     
     % The current BF:
     switch bf
-        case bf == 1
+        case 1
             bf_name = 'SIMPLE BF';
-        case bf == 2
+        case 2
             bf_name = 'NULL-STEERING BF';
-        case bf == 3
+        case 3
             bf_name = 'MVDR BF';
-        case bf == 4
+        case 4
             bf_name = 'LMS BF';
-        case bf == 5
+        case 5
             bf_name = 'MMSE BF';
     end
     
@@ -727,9 +759,9 @@ for bf = 1 : 5
     y = imag(bf_2x2);
     y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
     scatter(x, y);
-    title('Contellation revealed by 2x2 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 2x2 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Constellation revealed by 2x2 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Constellation revealed by 2x2 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
     
     % plot2 = subplot(2,2,2) -> BF with 4x4 antenna array.
     bf_4x4 = BF_4x4{bf};
@@ -739,9 +771,9 @@ for bf = 1 : 5
     y = imag(bf_4x4);
     y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
     scatter(x, y);
-    title('Contellation revealed by 4x4 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 4x4 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Constellation revealed by 4x4 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Constellation revealed by 4x4 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
     
     % plot3 = subplot(2,2,3) -> BF with 8x8 antenna array.
     bf_8x8 = BF_8x8{bf};
@@ -751,21 +783,21 @@ for bf = 1 : 5
     y = imag(bf_8x8);
     y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1, 1]);
     scatter(x, y);
-    title('Contellation revealed by 8x8 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 18x8 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);  
+    %title('Constellation revealed by 8x8 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Constellation revealed by 8x8 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);  
     
     % plot4 = subplot(2,2,4) -> BF with 16x16 antenna array.
-    bf_16x16 = BF_4x4{bf};
+    bf_16x16 = BF_16x16{bf};
     axes('Position', AxisPos(4, :));
     x = real(bf_16x16);
     x = reshape(x, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
     y = imag(bf_16x16);
     y = reshape(y, [(nfft - (length(pilot_indices1) + sum(NumGuardBandCarriers)))*nSymbols1,1]);
     scatter(x, y);
-    title('Contellation revealed by 16x16 antenna array', 'FontSize', 18);
-    %fig_title = sprintf('Contellation revealed by 16x16 antenna array - %s', bf_name);
-    %title(fig_title, 'FontSize', 18);
+    %title('Constellation revealed by 16x16 antenna array', 'FontSize', 18);
+    fig_title = sprintf('Constellation revealed by 16x16 antenna array - %s', bf_name);
+    title(fig_title, 'FontSize', 18);
     
     F = getframe(frame);
     writeVideo(v, F);
@@ -780,7 +812,7 @@ close(v);
 % Here we plot 4 figures, one for each tested dimension of the antenna
 % array (2x2, 4x4, 8x8, 16x16).
 % Each figure contains the constellation revealed after the BF and
-% equalization of the 5 BF used.
+% equalization of the 5 BFs used.
 figure();
 
 % Plot of the constellation revealed by the 2x2 array
@@ -796,7 +828,7 @@ for i = 1 : 5
     
 end
 grid on;
-title('Contellation revealed by 2x2 antenna array', 'FontSize', 18);
+title('Constellation revealed by 2x2 antenna array', 'FontSize', 18);
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 % Plot of the constellation revealed by the 4x4 array
@@ -812,7 +844,7 @@ for i = 1 : 5
     
 end
 grid on;
-title('Contellation revealed by 4x4 antenna array', 'FontSize', 18);
+title('Constellation revealed by 4x4 antenna array', 'FontSize', 18);
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 % Plot of the constellation revealed by the 8x8 array
@@ -828,7 +860,7 @@ for i = 1 : 5
     
 end
 grid on;
-title('Contellation revealed by 8x8 antenna array', 'FontSize', 18);
+title('Constellation revealed by 8x8 antenna array', 'FontSize', 18);
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 % Plot of the constellation revealed by the 16x16 array
@@ -844,7 +876,7 @@ for i = 1 : 5
     
 end
 grid on;
-title('Contellation revealed by 16x16 antenna array', 'FontSize', 18);
+title('Constellation revealed by 16x16 antenna array', 'FontSize', 18);
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');
 
 
@@ -865,5 +897,7 @@ for i = 1 : 5
     
 end
 grid on;
+xlabel('Number of antennas');
+ylabel('BER');
 title('BER for different kinds of BF');
 legend('Simple BF', 'Null-steering BF', 'MVDR BF', 'LMS BF', 'MMSE BF');

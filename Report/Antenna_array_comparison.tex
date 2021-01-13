@@ -44,8 +44,8 @@ The simulation proceeds with a loop on the four different antenna arrays. In eac
     \item Estimation of the \textit{DoA} of the two vehicles using the \textit{MUSIC} algorithm.
     \item Application of the five beamformers to the received signal. Here, we use the real $DoA$, and not the estimated one
             for a more consistent comparison of the results.
-    \item Channel equalization using the gradient descent algorithm. Here, we use a two-tap equalizer even if we could use only one 
-            (since on each subcarrier of the OFDM signal we can consider the channel as flat) for being more precise.
+    \item Channel equalization using the gradient descent algorithm. Here, we use a one-tap equalizer since on each subcarrier 
+            of the OFDM signal we can consider the channel as flat.
     \item OFDM demodulation.
     \item QAM demodulation.
     \item Computation of the BER.
