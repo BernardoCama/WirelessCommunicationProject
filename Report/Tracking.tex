@@ -2,11 +2,11 @@ In this section, we describe the tracking experiment and all the tecquiques invo
 
 \subsection{Aim of the Experiment}
 
-The focus of the last part of the Project is to track continuously two vehicles that are moving in a straight line,
-and in particular to appreciate the advantages that the LMS beamformer in Frequency domain can offer.
+The focus of the last part of the project is to track continuously two vehicles that are moving in a straight line,
+and in particular to appreciate the advantages that the LMS beamformer in frequency domain can offer.
 
-\subsection{Geometry and Paramters}
-The two vehicles are moving one towards Nord and one towards Est at 60 $km/h$. The antenna is placed in the origin at a height of 25 meters
+\subsection{Geometry and Parameters}
+The two vehicles are moving one towards Nord and one towards East at 60 $km/h$. The antenna is placed in the origin at a height of 25 meters
 and it is equipped with an array of 16x16 Antennas parallel to the ground. The simulation lasts 12 seconds and each vehicle 
 exchange 24 packets in total.
 
@@ -30,7 +30,7 @@ As parameters we used Carrier Frequency fc = 2.6 $GHz$, OFDM with 4-QAM as modul
     \item \textbf{OFDM Demodulation} Applying the FFT on the Signal from each Antenna.
     \item \textbf{LMS Beamformer} For each sub-carrier (In Frequency Domain) using half of the sequence as training.
     \item \textbf{Channel equalization} Applying the Gradient-Descent algorithm to each Sub-Carrier.
-    \item \textbf{QAM Demodulation} Finally recovery of the bits and calculation of the BER.
+    \item \textbf{QAM Demodulation} Final recovery of the bits and calculation of the BER.
 \end{enumerate}
 
 

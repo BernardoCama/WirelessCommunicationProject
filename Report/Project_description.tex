@@ -9,8 +9,8 @@ We have implemented 5 beamforming techniques:
     \item \textbf{Simple beamforming} The phases are selected to steer the array in a particular direction.
     \item \textbf{Null-steering beamforming} Used to cancel K $\leq$ N-2 plane waves arriving from known directions (N = number of
                 antennas).
-    \item \textbf{Minimun variance distiortionless response (MVDR) beamforming} This beamformer minimizes the interference-plus-
-            noise power at the output of the beamformer. 
+    \item \textbf{Minimun variance distiortionless response (MVDR) beamforming} This beamformer minimizes the interference-plus-noise 
+                power at the output of the beamformer. 
     \item \textbf{Minimum mean square error (MMSE) beamforming} The weigths of the antennas are adjusted in a way that the
             MSE between the output of the beamformer and the reference signal is minimized.
     \item \textbf{Least mean square (LMS) beamforming} This iterative algorithms adjust the weights by estimating the
@@ -20,7 +20,7 @@ We have implemented 5 beamforming techniques:
 
 \subsection{Channels}
 
-All the 5 beamformers have been tested on 3 different channel:
+All the 5 beamformers have been tested on 3 different channels:
 
 \begin{enumerate}
     \item \textbf{LOS channel} A simple line of sigth channel with no reflections.
@@ -30,7 +30,7 @@ All the 5 beamformers have been tested on 3 different channel:
 
 \subsection{Signals}
 
-For all the beamformers and in all the channel, the bits we transmit are generated randomly and modulated fist with a 4\-QAM 
+For all the beamformers and in all the channel, the bits we transmit are generated randomly and modulated first with a 4\-QAM 
 modulation (we have also tested the beamformers with a 16\-QAM); then, the QAM symbols are modulated with OFDM for transmission.
 
 \subsection{Reported results}
@@ -39,8 +39,8 @@ In this report, we only describe the three most important simulations we have do
 
 \begin{enumerate}
     \item Comparison between the SNR at the input and at the output of all the five beamformers in a LOS channel (\hyperref[sec:snr_comparison]{section 3}).
-    \item Comparison of the performance in terms of constellations revealed, weigths of the antennas and BER for all the \\ 
-            five beamformers considering different antenna arrays (\hyperref[sec:antenna_array_comparison]{section 4}). This has been done in the quadriga channel \\ 
+    \item Comparison of the performance in terms of constellations revealed, array pattern functions of the antenna arrya and BER for all the \\ 
+            five beamformers considering different antenna arrays (\hyperref[sec:antenna_array_comparison]{section 4}). This has been done in the quadriga channel
             and using the LMS beamformer in the time domain.
     \item Traking of two vehicles using LMS beamforming in the frequency domain (\hyperref[sec:tracking]{section 5}).
 \end{enumerate}
