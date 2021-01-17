@@ -652,7 +652,19 @@ for k=0:3
     grid on;
     xlim([0 9])
     ylim([4 22])
-    
-    
+     
     
 end
+
+set(0,'DefaultTextFontSize',18)
+set(0,'DefaultLineLineWidth',2);
+%set(0,'DefaultTextInterpreter','latex')
+set(0,'DefaultAxesFontSize',16)
+
+channel = PlotScenario_SNR(Geometry);
+saveas(channel,'Scenario_cirle.png')
+
+
+
+
+
