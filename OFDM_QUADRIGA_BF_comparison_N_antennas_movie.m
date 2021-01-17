@@ -27,21 +27,9 @@ Geometry.BSPos = [0, 0, 25];
 
 % First veichle (V1):
 Geometry.V1PosStart = [70, -100, 1.5]; % start
-% Geometry.V1PosStart = [10*cos((30)*pi/180), 10*sin((30)*pi/180), 0]; % start
-Geometry.V1PosEnd = [70, 100, 1.5];    % end
 
 % Second veichle (V2):
 Geometry.V2PosStart = [200, -50, 1.5]; % start 
-%Geometry.V2PosStart = [25*cos((60)*pi/180), 25*sin((60)*pi/180), 0]; % start
-Geometry.V2PosEnd = [10, -50, 1.5];    % end
-
-% % Interferents:
-% Geometry.I1Pos = [10, -210, 1.5]; 
-% Geometry.I2Pos = [-150, 100, 1.5];
-
-% Distance covered by veichles:
-Geometry.T1 = dist3D(Geometry.V1PosStart, Geometry.V1PosEnd);  % V1
-Geometry.T2 = dist3D(Geometry.V2PosStart, Geometry.V2PosEnd);  % V2
 
 % Initial distances between veichles and BS:
 Geometry.DistV1Start = dist3D(Geometry.V1PosStart, Geometry.BSPos); % BS and V1
@@ -81,17 +69,6 @@ Geometry.BSarray_16x16 = phased.URA('Size', [Geometry.Nant(4) Geometry.Nant(4)],
 Geometry.BSarray_all = {Geometry.BSarray_2x2 Geometry.BSarray_4x4 ...
     Geometry.BSarray_8x8 Geometry.BSarray_16x16};
 
-% Geometry.Nant = [4 16];
-% 
-% Geometry.BSarray_4x4 = phased.URA('Size', [Geometry.Nant(1) Geometry.Nant(1)], ...
-%     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'z');
-% 
-% Geometry.BSarray_16x16 = phased.URA('Size', [Geometry.Nant(2) Geometry.Nant(2)], ...
-%     'ElementSpacing', [Pars.lambda/2 Pars.lambda/2], 'ArrayNormal', 'z');
-% 
-% % Putting all antenna arrays into a vector:
-% Geometry.BSarray_all = {Geometry.BSarray_4x4 Geometry.BSarray_16x16};
-
 %% %% 3GPP Parameters
 % Frequency spacing
 Geometry.delta_f = 60e3;
@@ -99,7 +76,7 @@ Geometry.delta_f = 60e3;
 % Symbol Time
 Geometry.Ts = 17.84e-6;
 
-%% Generation of ODFM modulators and demodulators, M-QAM modulators and waveforms
+%% GENERATION OF ODFM MODULATORS AND DEMODULATORS AND OF M-QAM MODULATORS AND WAVEFORMS
 
 % Number of ODFM symbols:
 nSymbols1 = 100;
@@ -191,10 +168,6 @@ ofdmDemod2 = comm.OFDMDemodulator(ofdmMod2);
 
 %% DEFINITION OF OUTPUTS TO BE COMPARED
 
-% Detected direction of arrivals of the first vehicle (only one that can be correctly detected in this case):
-DoA1 = zeros(2, length(Geometry.Nant));
-DoA2 = zeros(2, length(Geometry.Nant));
-
 % BER of the beamformers (only after beamformer and with equalization case, one column per BF type):
 ber = ones(length(Geometry.Nant), 5);
 
@@ -229,16 +202,6 @@ chOut_nulling_BF_equal_OFDMdem = zeros(dimensions);
 chOut_mvdr_BF_equal_OFDMdem = zeros(dimensions);
 chOut_lms_BF_equal_OFDMdem = zeros(dimensions);
 chOut_mmse_BF_equal_OFDMdem = zeros(dimensions);
-
-% Signals OFDM-demodulated after BF but without equalization:
-chOut_simple_BF_OFDMdem = zeros(dimensions); 
-chOut_nulling_BF_OFDMdem = zeros(dimensions);
-chOut_mvdr_BF_OFDMdem = zeros(dimensions);
-chOut_lms_BF_OFDMdem = zeros(dimensions);
-chOut_mmse_BF_OFDMdem = zeros(dimensions);
-
-% Signals OFDM-demodulated without BF and without equalization:
-chOut_OFDMdem = zeros(dimensions);
 
 %% LOOP FOR PERFORMANCE COMPARISON
 
@@ -342,32 +305,6 @@ for ant = 1 : length(Geometry.Nant)
     noise = chOut_noise - chOut;
     chOut = chOut_noise;
     
-    %% ESTIMATION OF DoA (MUSIC ALGORITHM)
-    
-    % Generation of MUSIC  DoA estimator:
-    estimator = phased.MUSICEstimator2D( ...
-        'SensorArray', Geometry.BSarray, ...
-        'OperatingFrequency', Pars.fc, ...
-        'ForwardBackwardAveraging', true, ...
-        'NumSignalsSource', 'Property', ...
-        'DOAOutputPort', true, ...
-        'NumSignals', 2, ...
-        'AzimuthScanAngles', -180:.5:180, ...
-        'ElevationScanAngles', 0:0.5:90);
-    
-    % Estimation od DoA of singal in output from the channel:
-    [~, DoA_tmp] = estimator(chOut);
-    
-    % DoA of the first vehicle:
-    DoA1(:, ant) = DoA_tmp(:, 1);
-    
-    % DoA of the second vehicle:
-    DoA2(:, ant) = DoA_tmp(:, 2);
-    
-    % Plotting:
-    % figure();
-    % plotSpectrum(estimator);
-    
     %% APPLICATION OF DIFFERENT BEAMFORMERS
     
     % Simple BF:
@@ -427,23 +364,7 @@ for ant = 1 : length(Geometry.Nant)
     chOut_mmse_BF_equal(:, ant) = chOut_mmse_BF_equal_(1:size(chOut_mmse_BF_equal), 1);
     
     %% OFDM DEMODULATION
-    % In order to show the effects of the various typer of beamformer, we
-    % consider the signals at the first antenna ODFM-demodulated at different steps:
-    % 1) Without the BF and the equalization
-    % 2) With the BF but without equalization
-    % 3) With the BF and with the equalization
     
-    % BF: no, equalization: no:
-    chOut_OFDMdem(:, :, ant) = ofdmDemod1(chOut(:,1));
-    
-    % BF: yes, equalization: no:
-    chOut_simple_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_simple_BF(:, ant));
-    chOut_nulling_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_nulling_BF(:, ant));
-    chOut_mvdr_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_mvdr_BF(:, ant));
-    chOut_lms_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_lms_BF(:, ant));
-    chOut_mmse_BF_OFDMdem(:, :, ant) = ofdmDemod1(chOut_mmse_BF(:, ant));
-    
-    % BF: yes, equalization: yes:
     chOut_simple_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_simple_BF_equal(:, ant));
     chOut_nulling_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_nulling_BF_equal(:, ant));
     chOut_mvdr_BF_equal_OFDMdem(:, :, ant) = ofdmDemod1(chOut_mvdr_BF_equal(:, ant));
@@ -503,17 +424,17 @@ end
 
 % Preparing cells with the weigth of the antennas: one cell for antenna array containing the
 % weights of the different BF in the order: simple, null-steering, mvdr, lms, mmse.
-w_2x2 = {w_lms_BF(:, 1) w_nulling_BF(:, 1) w_mvdr_BF(:, 1) ...
-    w_lms_BF(:, 1) w_mmse_BF(:, 1)};
+w_2x2 = {w_lms_BF(:, 1) w_nulling_BF(:, 1) transpose(w_mvdr_BF(:, 1)') ...
+    w_lms_BF(:, 1) transpose(w_mmse_BF(:, 1)')};
 
-w_4x4 = {w_lms_BF(:, 2) w_nulling_BF(:, 2) w_mvdr_BF(:, 2) ...
-    w_lms_BF(:, 2) w_mmse_BF(:, 2)};
+w_4x4 = {w_lms_BF(:, 2) w_nulling_BF(:, 2) transpose(w_mvdr_BF(:, 2)') ...
+    w_lms_BF(:, 2) transpose(w_mmse_BF(:, 2)')};
 
-w_8x8 = {w_lms_BF(:, 3) w_nulling_BF(:, 3) w_mvdr_BF(:, 3) ...
-    w_lms_BF(:, 3) w_mmse_BF(:, 3)};
+w_8x8 = {w_lms_BF(:, 3) w_nulling_BF(:, 3) transpose( w_mvdr_BF(:, 3)') ...
+    w_lms_BF(:, 3) transpose(w_mmse_BF(:, 3)')};
 
-w_16x16 = {w_lms_BF(:, 4) w_nulling_BF(:, 4) w_mvdr_BF(:, 4) ...
-    w_lms_BF(:, 4) w_mmse_BF(:, 4)};
+w_16x16 = {w_lms_BF(:, 4) w_nulling_BF(:, 4) transpose(w_mvdr_BF(:, 4)') ...
+    w_lms_BF(:, 4) transpose(w_mmse_BF(:, 4)')};
 
 % Here, we create a video in which we show the weigths of the different
 % kinds of BF techiques using differentantenna array configurations
