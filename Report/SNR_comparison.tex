@@ -9,7 +9,7 @@ In this simulation, we have tested the performance in terms of gain in the SNR a
 \subsection{Geometry and parameters}
 
 We are using a $LOS$ channel in stationary conditions (vehicles are not moving). The vehicles are positioned at a 
-distance of 25 meters from the base station on a circumference and spaced of $20°$ as in Figure \ref{fig:Scenario_circle}. \\ 
+distance of 25 meters from the base station on a circumference and spaced of $\ang{20}$ as in Figure \ref{fig:Scenario_circle}. \\ 
 The antenna array we are using is a 4x4 array.
 
 \begin{figure}[ht]
@@ -45,7 +45,7 @@ beamformers.
 
 \begin{figure}[ht]
     \includegraphics[width=\linewidth]{SNR_comparison.png}  
-    \caption{Relation SNRin - SNRout for different interfering signals anf beamformers}  
+    \caption{Relation SNRin - SNRout for different interfering signals and beamformers (LMS initialized with simple BF)}  
     \label{fig:SNR_comparison}
 \end{figure}
 
@@ -54,9 +54,15 @@ approximately constant and equal to 12dB.
 As the number of interferents increases, we can identify as general behavior:
 
 \begin{enumerate}
-    \item The simple and the LMS beamformer is the worst one; indeed, their curves are the most bended and the 
+    \item The simple and the LMS beamformer are the worst one; indeed, their curves are the most bended and the 
             ones giving the lowest gain. This is expected for the simple beamformer and, in this case, also for the LMS
-            since we are initializing its state using the simple beamformer. This is not the best way to initialize it (and
+            since we are initializing its state using the simple beamformer. This is not the best choice (and
             in fact the gain of the LMS is low), but its a simple way of initializing it.
-    \item 
+    \item The MVDR and the MMSE are the beamformers that behaves better since they are designed for minimizing respectively the 
+            interference-plus-noise power at the beamformer output and the error with respect to a reference singal. Anyway, as 
+            the number of interferents increases their gain decreases, but still their curves are almost linear. 
+    \item The null-steering beamformer behaves as the MVDR and the MMSE with for 0, 1 or 2 interfering signals, but its gain
+            decreases with three interferents. This is due to the fact that this beamformer tries to put a null in correspondence
+            of the DoA of the interferents and, in case there are too many ones and too close one to each other, this becomes 
+            difficult and the gain decreases.
 \end{enumerate}
